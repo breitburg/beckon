@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="com.github.breitburg.elementary-intelligence" path="/com/github/breitburg/elementary-intelligence/">
+        <key name="api-base-url" type="s">
+            <default>'https://api.openai.com/v1'</default>
+            <summary>API Base URL</summary>
+            <description>The base URL for the OpenAI-compatible API endpoint (including version path)</description>
+        </key>
+        <key name="api-key" type="s">
+            <default>''</default>
+            <summary>API Key</summary>
+            <description>The API key for authentication</description>
+        </key>
+        <key name="model-name" type="s">
+            <default>'gpt-5'</default>
+            <summary>Model Name</summary>
+            <description>The model name to use for completions</description>
+        </key>
+        <key name="window-width" type="i">
+            <default>900</default>
+            <summary>Window width</summary>
+        </key>
+        <key name="window-height" type="i">
+            <default>600</default>
+            <summary>Window height</summary>
+        </key>
+        <key name="sidebar-width" type="i">
+            <default>240</default>
+            <summary>Sidebar width</summary>
+        </key>
+        <key name="last-chat-id" type="i">
+            <default>-1</default>
+            <summary>Last Chat ID</summary>
+            <description>The ID of the last opened chat for session restoration</description>
+        </key>
+    </schema>
+</schemalist>

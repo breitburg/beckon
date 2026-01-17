@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Hello World
+Comment=A hello world application for elementary OS
+Categories=Utility;
+Exec=com.github.breitburg.elementary-intelligence
+Icon=com.github.breitburg.elementary-intelligence
+Terminal=false
+Type=Application
+Keywords=Hello;World;Example;

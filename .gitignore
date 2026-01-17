@@ -1,0 +1,22 @@
+# Build directories
+build/
+builddir/
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Compiled schemas
+*.compiled

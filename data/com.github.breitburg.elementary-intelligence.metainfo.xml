@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- SPDX-FileCopyrightText: 2026 breitburg -->
+<component type="desktop-application">
+    <id>com.github.breitburg.elementary-intelligence</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0-or-later</project_license>
+
+    <name>Hello World</name>
+    <summary>A hello world application for elementary OS</summary>
+    <description>
+        <p>
+            A simple hello world application demonstrating elementary OS
+            development best practices using Vala and GTK4.
+        </p>
+    </description>
+
+    <developer id="com.github.breitburg">
+        <name>breitburg</name>
+    </developer>
+
+    <icon type="stock">com.github.breitburg.elementary-intelligence</icon>
+
+    <url type="homepage">https://github.com/breitburg/elementary-intelligence</url>
+    <url type="bugtracker">https://github.com/breitburg/elementary-intelligence/issues</url>
+
+    <launchable type="desktop-id">com.github.breitburg.elementary-intelligence.desktop</launchable>
+
+    <branding>
+        <color type="primary">#7239b3</color>
+    </branding>
+
+    <content_rating type="oars-1.1" />
+
+    <recommends>
+        <display_length compare="ge">360</display_length>
+    </recommends>
+
+    <supports>
+        <control>pointing</control>
+        <control>keyboard</control>
+        <control>touch</control>
+    </supports>
+
+    <releases>
+        <release version="1.0.0" date="2026-01-17">
+            <description>
+                <p>Initial release</p>
+            </description>
+        </release>
+    </releases>
+</component>

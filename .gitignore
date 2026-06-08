@@ -2,6 +2,9 @@
 build/
 builddir/
 
+# Rust
+/target/
+
 # Editor files
 *.swp
 *.swo

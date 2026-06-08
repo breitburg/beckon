@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 breitburg
+#
+# Starting Flatpak manifest. For a reproducible (offline) build you must vendor
+# the cargo dependencies — generate `cargo-sources.json` with
+# flatpak-cargo-generator and add it to the module's `sources`.
+#
+# Note the dconf permissions: writing the system-wide keybinding lives in
+# host gsettings, so the sandbox needs dconf access. A native build needs none
+# of this.
+id: com.github.breitburg.elementary-intelligence
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: com.github.breitburg.elementary-intelligence
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Browser-opening and host gsettings keybinding access:
+  - --talk-name=org.freedesktop.portal.OpenURI
+  - --talk-name=ca.desrt.dconf
+  - --filesystem=xdg-run/dconf
+  - --filesystem=~/.config/dconf:ro
+  - --env=DCONF_USER_CONFIG_DIR=.config/dconf
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/elementary-intelligence/cargo
+
+modules:
+  - name: elementary-intelligence
+    buildsystem: meson
+    sources:
+      - type: dir
+        path: ..
+      # - type: file
+      #   path: cargo-sources.json   # generated, for offline builds

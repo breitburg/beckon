@@ -1,0 +1,20 @@
+[package]
+name = "elementary-intelligence"
+version = "1.0.0"
+edition = "2021"
+description = "Summon any AI chat service from a system-wide hotkey"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/breitburg/elementary-intelligence"
+default-run = "elementary-intelligence"
+
+[[bin]]
+name = "elementary-intelligence"
+path = "src/main.rs"
+
+[dependencies]
+gtk4 = { version = "0.9", features = ["v4_10"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+wayland-client = "0.31"
+wayland-backend = { version = "0.3", features = ["client_system"] }
+wayland-scanner = "0.31"

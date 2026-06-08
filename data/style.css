@@ -1,0 +1,101 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-FileCopyrightText: 2026 breitburg
+ *
+ * Minimal styling. Everything else is inherited from the active elementary
+ * stylesheet so the app feels native by default. */
+
+/* Brand-purple enable toggle, scoped to the one switch carrying `.brand`.
+ * Mirrors the elementary theme's own `switch:checked` rule (background plus a
+ * shaded border) so it renders exactly like an accented switch — the inner
+ * shadow comes from the base `switch` node and is left untouched. */
+switch.brand:checked:not(.mode-switch):not(:backdrop) {
+    background-color: #7239b3;
+    border-color: shade(#7239b3, 0.85);
+}
+
+/* Keep the toplevel transparent so the card's rounded corners and drop
+ * shadow are visible instead of the square window background. */
+window.spotlight,
+window.spotlight.background {
+    background: transparent;
+    box-shadow: none;
+}
+
+/* The Spotlight entry: a single rounded card floating on the desktop. The
+ * margin leaves a gutter for the shadow to render into. Mostly transparent so
+ * the compositor blur behind it reads as frosted glass. */
+window.spotlight .spotlight-card {
+    /* The margin must exceed the shadow's reach (offset + blur) on every side,
+     * or the toplevel clips it. Largest reach is 5 + 24 = 29px downward. */
+    margin: 32px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background-color: alpha(@theme_base_color, 0.9);
+    box-shadow:
+        0 0 2px alpha(#000, 0.5),
+        0 5px 24px alpha(#000, 0.2);
+}
+
+window.spotlight .spotlight-entry,
+window.spotlight .spotlight-entry:focus {
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    font-size: 1.3em;
+    min-height: 40px;
+}
+
+/* Give the leading search icon more horizontal breathing room. */
+window.spotlight .spotlight-entry > image:first-child {
+    margin-left: 4px;
+    margin-right: 10px;
+}
+
+/* The settings button: dimmed to match the search icon, full colour on hover,
+ * and no button chrome. Padding mirrors the search icon (left/right swapped)
+ * so both icons sit symmetrically against their card edges. */
+window.spotlight .spotlight-card button {
+    background: none;
+    box-shadow: none;
+    border: none;
+    min-height: 0;
+    min-width: 0;
+    padding: 4px 4px 4px 10px;
+    opacity: 0.55;
+}
+
+window.spotlight .spotlight-card button:hover {
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+}
+
+/* Settings: flat, backgroundless header that blends into the window. */
+headerbar.flat {
+    background: none;
+    box-shadow: none;
+    border: none;
+}
+
+/* Settings heading vertical padding. The glow itself is on the window so it
+ * also covers the area behind the flat header bar. */
+.app-heading {
+    padding: 36px 0;
+}
+
+/* Soft purple glow at the top of the settings window, behind the header bar,
+ * fading into the surface colour (works in light and dark). */
+window#settings {
+    background-image: linear-gradient(
+        to bottom,
+        alpha(#7239b3, 0.3),
+        alpha(@theme_bg_color, 0) 200px
+    );
+}
+
+.app-title {
+    font-weight: 700;
+    font-size: 1.5em;
+}
+

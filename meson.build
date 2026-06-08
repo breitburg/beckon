@@ -1,16 +1,31 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 breitburg
+
 project(
     'com.github.breitburg.elementary-intelligence',
-    'vala', 'c',
     version: '1.0.0',
-    meson_version: '>= 0.58.0'
+    meson_version: '>= 0.59',
 )
 
-gnome = import('gnome')
-i18n = import('i18n')
+app_id = meson.project_name()
+cargo = find_program('cargo')
+cargo_sh = find_program('build-aux' / 'cargo.sh')
 
-add_global_arguments('-DGETTEXT_PACKAGE="@0@"'.format(meson.project_name()), language:'c')
+# Build the Rust binary with cargo and install it under the app id, so it
+# matches the desktop file's Exec/Icon.
+custom_target(
+    'cargo-build',
+    output: app_id,
+    console: true,
+    install: true,
+    install_dir: get_option('bindir'),
+    build_always_stale: true,
+    command: [
+        cargo_sh,
+        meson.project_source_root(),
+        '@OUTPUT@',
+        meson.project_build_root() / 'cargo-target',
+    ],
+)
 
 subdir('data')
-subdir('src')
-
-gnome.post_install(glib_compile_schemas: true)

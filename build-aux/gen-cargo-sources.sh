@@ -19,11 +19,11 @@ curl -fsSL "$GEN_URL" -o "$GEN"
 
 # Run the generator in a one-shot isolated environment (no system pollution).
 if command -v uv >/dev/null 2>&1; then
-    uv run --with aiohttp --with toml python3 "$GEN" \
+    uv run --with aiohttp --with tomlkit python3 "$GEN" \
         "$ROOT/Cargo.lock" -o "$ROOT/flatpak/cargo-sources.json"
 else
     echo "uv not found; install it or run the generator manually:" >&2
-    echo "  pip install aiohttp toml && python3 <gen> Cargo.lock -o flatpak/cargo-sources.json" >&2
+    echo "  pip install aiohttp tomlkit && python3 <gen> Cargo.lock -o flatpak/cargo-sources.json" >&2
     exit 1
 fi
 

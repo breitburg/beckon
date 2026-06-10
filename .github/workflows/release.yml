@@ -44,7 +44,7 @@ jobs:
       # never drifts from the committed lockfile.
       - name: Regenerate cargo sources
         run: |
-          pip install --quiet aiohttp toml
+          pip install --quiet aiohttp tomlkit
           curl -fsSL \
             https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py \
             -o /tmp/flatpak-cargo-generator.py

@@ -49,6 +49,10 @@
         <color type="primary">#7239b3</color>
     </branding>
 
+    <categories>
+        <category>Utility</category>
+    </categories>
+
     <content_rating type="oars-1.1" />
 
     <supports>

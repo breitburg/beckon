@@ -1,0 +1,66 @@
+name: Build Flatpak on release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and attach the bundle to"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  flatpak:
+    name: ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-47
+      options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, arch: x86_64 }
+          - { runner: ubuntu-24.04-arm, arch: aarch64 }
+    steps:
+      - name: Resolve release tag
+        run: echo "TAG=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      # Add the elementary remote so the io.elementary.Platform/Sdk runtime the
+      # manifest targets is installable on the build host.
+      - name: Add elementary Flatpak remote
+        run: |
+          flatpak remote-add --if-not-exists --user appcenter \
+            https://flatpak.elementary.io/repo.flatpakrepo
+
+      # Keep cargo-sources.json in lockstep with Cargo.lock so the offline build
+      # never drifts from the committed lockfile.
+      - name: Regenerate cargo sources
+        run: |
+          pip install --quiet aiohttp toml
+          curl -fsSL \
+            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py \
+            -o /tmp/flatpak-cargo-generator.py
+          python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o flatpak/cargo-sources.json
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: com.github.breitburg.elementary-intelligence-${{ matrix.arch }}.flatpak
+          manifest-path: flatpak/com.github.breitburg.elementary-intelligence.yml
+          cache-key: flatpak-builder-${{ matrix.arch }}
+          arch: ${{ matrix.arch }}
+
+      - name: Attach bundle to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$TAG" \
+            com.github.breitburg.elementary-intelligence-${{ matrix.arch }}.flatpak --clobber

@@ -31,6 +31,20 @@
 
     <launchable type="desktop-id">com.github.breitburg.elementary-intelligence.desktop</launchable>
 
+    <!--
+        AppCenter requires at least one screenshot. Drop PNGs into screenshots/,
+        push them, and point each <image> at the raw GitHub URL (or a release
+        asset). The first screenshot is the listing's hero image.
+    -->
+    <!--
+    <screenshots>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/breitburg/elementary-intelligence/main/screenshots/main.png</image>
+            <caption>Summon an AI assistant from anywhere</caption>
+        </screenshot>
+    </screenshots>
+    -->
+
     <branding>
         <color type="primary">#7239b3</color>
     </branding>

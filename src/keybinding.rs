@@ -22,15 +22,15 @@ const CUSTOM_KEYBINDING_SCHEMA: &str =
 /// Dedicated, app-specific relay paths so we never collide with the user's
 /// own custom shortcuts.
 const RELAY_PATH: &str =
-    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/elementary-intelligence/";
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/beckon/";
 const SCREENSHOT_RELAY_PATH: &str =
-    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/elementary-intelligence-screenshot/";
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/beckon-screenshot/";
 
 /// Absolute command the compositor runs when a hotkey fires.
 fn command(args: &str) -> String {
     let exe = env::current_exe()
         .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|_| "elementary-intelligence".to_string());
+        .unwrap_or_else(|_| "beckon".to_string());
     format!("{exe} {args}")
 }
 
@@ -40,13 +40,13 @@ fn command(args: &str) -> String {
 pub fn apply(config: &Config) {
     write_relay(
         RELAY_PATH,
-        "Elementary Intelligence",
+        "Beckon",
         &command("--spotlight"),
         if config.enabled { &config.shortcut } else { "" },
     );
     write_relay(
         SCREENSHOT_RELAY_PATH,
-        "Elementary Intelligence (Screenshot)",
+        "Beckon (Screenshot)",
         &command("--spotlight --screenshot"),
         if config.enabled { &config.screenshot_shortcut } else { "" },
     );

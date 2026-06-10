@@ -1,8 +1,8 @@
-# Elementary Intelligence
+# Beckon
 
 Summon any AI chat service from a system-wide shortcut.
 
-Elementary Intelligence runs quietly in the background. Press your shortcut
+Beckon runs quietly in the background. Press your shortcut
 (default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>) to bring up a simple
 entry, type a message, and press <kbd>Enter</kbd> — it opens your chosen
 assistant with the message ready to send.
@@ -43,7 +43,7 @@ sudo ninja -C build install
 ## Configuration
 
 Settings live in
-`~/.config/com.github.breitburg.elementary-intelligence/config.toml` and are
+`~/.config/com.github.breitburg.beckon/config.toml` and are
 also editable from the app's settings window. Add or tweak services by editing
 the `[[services]]` entries — the `{q}` placeholder is replaced with the
 URL-encoded message:
@@ -54,11 +54,20 @@ name = "Claude"
 url_template = "https://claude.ai/new?q={q}"
 ```
 
-## Flatpak
+## Flatpak & AppCenter
 
-`flatpak/com.github.breitburg.elementary-intelligence.yml` is a starting
-manifest. Note it needs dconf permissions to register the host keybinding, and
-vendored cargo sources for an offline build (see comments in the manifest).
+`flatpak/com.github.breitburg.beckon.yml` targets the elementary runtime
+(`io.elementary.Platform`) and is what elementary's AppCenter builds. It needs
+dconf permissions to register the host keybinding, and vendored cargo sources
+for the offline build. Regenerate those whenever `Cargo.lock` changes:
+
+```sh
+build-aux/gen-cargo-sources.sh   # writes flatpak/cargo-sources.json
+```
+
+Publishing a tagged release also triggers
+`.github/workflows/release.yml`, which builds `.flatpak` bundles for x86_64 and
+aarch64 and attaches them to the release.
 
 ## License
 

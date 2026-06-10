@@ -15,4 +15,4 @@ cargo build \
     --release \
     --target-dir "$TARGET_DIR"
 
-cp "$TARGET_DIR/release/elementary-intelligence" "$OUTPUT"
+cp "$TARGET_DIR/release/beckon" "$OUTPUT"

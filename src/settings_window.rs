@@ -47,7 +47,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
 
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("Elementary Intelligence")
+        .title("Beckon")
         .resizable(false)
         .default_width(380)
         .build();
@@ -59,7 +59,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     header.add_css_class("flat");
     header.set_title_widget(Some(&Label::new(None)));
     let menu_model = gio::Menu::new();
-    menu_model.append(Some("Quit Elementary Intelligence"), Some("app.quit"));
+    menu_model.append(Some("Quit Beckon"), Some("app.quit"));
     let menu_button = MenuButton::builder()
         .icon_name("open-menu-symbolic")
         .menu_model(&menu_model)
@@ -80,7 +80,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     // so the gradient fills the whole section.
     heading.add_css_class("app-heading");
 
-    let title = Label::new(Some("Elementary Intelligence"));
+    let title = Label::new(Some("Beckon"));
     title.add_css_class("app-title");
     title.set_halign(Align::Center);
     heading.append(&title);

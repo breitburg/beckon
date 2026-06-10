@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 breitburg
 
 project(
-    'com.github.breitburg.elementary-intelligence',
+    'com.github.breitburg.beckon',
     version: '1.0.0',
     meson_version: '>= 0.59',
 )

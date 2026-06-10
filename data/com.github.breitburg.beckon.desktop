@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Elementary Intelligence
+Name=Beckon
 GenericName=AI Assistant Launcher
 Comment=Summon any AI chat service from a system-wide shortcut
 Categories=Utility;GTK;
-Exec=com.github.breitburg.elementary-intelligence
-Icon=com.github.breitburg.elementary-intelligence
+Exec=com.github.breitburg.beckon
+Icon=com.github.breitburg.beckon
 Terminal=false
 Keywords=AI;Assistant;Claude;ChatGPT;Gemini;Chat;

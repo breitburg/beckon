@@ -1,14 +1,14 @@
 [package]
-name = "elementary-intelligence"
+name = "beckon"
 version = "1.0.0"
 edition = "2021"
 description = "Summon any AI chat service from a system-wide hotkey"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/breitburg/elementary-intelligence"
-default-run = "elementary-intelligence"
+repository = "https://github.com/breitburg/beckon"
+default-run = "beckon"
 
 [[bin]]
-name = "elementary-intelligence"
+name = "beckon"
 path = "src/main.rs"
 
 [dependencies]

@@ -15,7 +15,7 @@ mod spotlight;
 use gtk4::prelude::*;
 
 /// Application id, also used as the config directory and icon name.
-pub const APP_ID: &str = "com.github.breitburg.elementary-intelligence";
+pub const APP_ID: &str = "com.github.breitburg.beckon";
 
 fn main() -> gtk4::glib::ExitCode {
     app::build().run()

@@ -2,15 +2,15 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- SPDX-FileCopyrightText: 2026 breitburg -->
 <component type="desktop-application">
-    <id>com.github.breitburg.elementary-intelligence</id>
+    <id>com.github.breitburg.beckon</id>
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-3.0-or-later</project_license>
 
-    <name>Elementary Intelligence</name>
+    <name>Beckon</name>
     <summary>Summon any AI chat service from a system-wide shortcut</summary>
     <description>
         <p>
-            Elementary Intelligence runs quietly in the background. Press a
+            Beckon runs quietly in the background. Press a
             system-wide shortcut to bring up a simple entry, type your message,
             and it opens your chosen AI assistant with the message ready to send.
         </p>
@@ -24,12 +24,12 @@
         <name>breitburg</name>
     </developer>
 
-    <icon type="stock">com.github.breitburg.elementary-intelligence</icon>
+    <icon type="stock">com.github.breitburg.beckon</icon>
 
-    <url type="homepage">https://github.com/breitburg/elementary-intelligence</url>
-    <url type="bugtracker">https://github.com/breitburg/elementary-intelligence/issues</url>
+    <url type="homepage">https://github.com/breitburg/beckon</url>
+    <url type="bugtracker">https://github.com/breitburg/beckon/issues</url>
 
-    <launchable type="desktop-id">com.github.breitburg.elementary-intelligence.desktop</launchable>
+    <launchable type="desktop-id">com.github.breitburg.beckon.desktop</launchable>
 
     <!--
         AppCenter requires at least one screenshot. Drop PNGs into screenshots/,
@@ -39,7 +39,7 @@
     <!--
     <screenshots>
         <screenshot type="default">
-            <image>https://raw.githubusercontent.com/breitburg/elementary-intelligence/main/screenshots/main.png</image>
+            <image>https://raw.githubusercontent.com/breitburg/beckon/main/screenshots/main.png</image>
             <caption>Summon an AI assistant from anywhere</caption>
         </screenshot>
     </screenshots>

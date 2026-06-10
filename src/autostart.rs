@@ -25,11 +25,11 @@ pub fn set_enabled(enabled: bool) {
         }
         let exe = env::current_exe()
             .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_else(|_| "elementary-intelligence".to_string());
+            .unwrap_or_else(|_| "beckon".to_string());
         let entry = format!(
             "[Desktop Entry]\n\
              Type=Application\n\
-             Name=Elementary Intelligence\n\
+             Name=Beckon\n\
              Exec={exe}\n\
              Icon={APP_ID}\n\
              Terminal=false\n\

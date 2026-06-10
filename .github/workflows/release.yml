@@ -53,8 +53,8 @@ jobs:
       - name: Build Flatpak bundle
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: com.github.breitburg.elementary-intelligence-${{ matrix.arch }}.flatpak
-          manifest-path: flatpak/com.github.breitburg.elementary-intelligence.yml
+          bundle: com.github.breitburg.beckon-${{ matrix.arch }}.flatpak
+          manifest-path: flatpak/com.github.breitburg.beckon.yml
           cache-key: flatpak-builder-${{ matrix.arch }}
           arch: ${{ matrix.arch }}
 
@@ -63,4 +63,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$TAG" \
-            com.github.breitburg.elementary-intelligence-${{ matrix.arch }}.flatpak --clobber
+            com.github.breitburg.beckon-${{ matrix.arch }}.flatpak --clobber

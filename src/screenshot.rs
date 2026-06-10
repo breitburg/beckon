@@ -21,7 +21,7 @@ const MAX_WIDTH: i32 = 1568;
 /// Must be called before the spotlight window exists so it isn't in the shot;
 /// the synchronous D-Bus call is invisible with no window mapped.
 pub fn capture() -> Result<String, String> {
-    let path = glib::tmp_dir().join(format!("elementary-intelligence-{}.png", std::process::id()));
+    let path = glib::tmp_dir().join(format!("beckon-{}.png", std::process::id()));
     let path_str = path.to_string_lossy().into_owned();
 
     let connection = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE)

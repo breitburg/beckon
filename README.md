@@ -4,8 +4,8 @@ Summon any AI chat service from a system-wide shortcut.
 
 Beckon runs quietly in the background. Press your shortcut
 (default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>) to bring up a simple
-entry, type a message, and press <kbd>Enter</kbd> — it opens your chosen
-assistant with the message ready to send.
+entry, type a message, and press <kbd>Enter</kbd> — the reply streams in
+right below the prompt. Press <kbd>Esc</kbd> to clear and dismiss.
 
 Built natively for elementary OS in Rust and GTK4, inheriting the system
 stylesheet so it feels at home.
@@ -13,9 +13,13 @@ stylesheet so it feels at home.
 ## Features
 
 - **System-wide hotkey** — configurable trigger combination.
-- **Spotlight-style entry** — a minimal, centered prompt.
-- **Pluggable services** — Claude (default), ChatGPT, Gemini and Mistral, each
-  defined by a `{q}` URL template you can edit in the config.
+- **Spotlight-style entry** — a minimal, centered prompt; the conversation
+  slides open beneath it as the answer streams in, rendered as markdown.
+- **Any OpenAI-compatible API** — point it at OpenAI, a local server, or any
+  compatible endpoint via base URL, key and model.
+- **Screenshot to chat** — a second hotkey
+  (default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) captures the screen and
+  attaches it to your message for a vision model to read.
 - **Start on login** — runs as a background service.
 
 ## How the hotkey works
@@ -43,16 +47,19 @@ sudo ninja -C build install
 ## Configuration
 
 Settings live in
-`~/.config/com.github.breitburg.beckon/config.toml` and are
-also editable from the app's settings window. Add or tweak services by editing
-the `[[services]]` entries — the `{q}` placeholder is replaced with the
-URL-encoded message:
+`~/.config/com.github.breitburg.beckon/config.toml` and are also editable from
+the app's settings window. Point it at any OpenAI-compatible endpoint:
 
 ```toml
-[[services]]
-name = "Claude"
-url_template = "https://claude.ai/new?q={q}"
+api_base_url = "https://api.openai.com/v1"
+api_key = "sk-..."
+model = "gpt-4o-mini"
+system_prompt = "You're a helpful assistant called El. You aim to respond in 1-2 sentences, straight to the point."
+shortcut = "<Control><Shift>space"
+screenshot_shortcut = "<Control><Shift>s"
 ```
+
+The file holds your API key, so it's written with `0600` permissions.
 
 ## Flatpak & AppCenter
 

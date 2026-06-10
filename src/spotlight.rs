@@ -207,6 +207,9 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
     let history: Rc<RefCell<Vec<Value>>> = Rc::new(RefCell::new(Vec::new()));
     let streaming = Rc::new(Cell::new(false));
     let screenshot = Rc::new(RefCell::new(screenshot));
+    // Handle to the in-flight reply task, so Escape-to-clear can abort it
+    // (dropping the channel receiver, which stops the worker thread).
+    let active_stream: Rc<RefCell<Option<glib::JoinHandle<()>>>> = Rc::new(RefCell::new(None));
     // The first user message is hidden while the chat is a single exchange; it
     // is revealed once a second turn arrives and the history becomes worth
     // scrolling back through.
@@ -252,6 +255,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
         let streaming = streaming.clone();
         let screenshot = screenshot.clone();
         let first_user_label = first_user_label.clone();
+        let active_stream = active_stream.clone();
         entry.connect_activate(move |entry| {
             let text = entry.text();
             let message = clean(&text);
@@ -353,7 +357,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
             let history = history.clone();
             let streaming = streaming.clone();
             let messages = messages.clone();
-            glib::spawn_future_local(async move {
+            let handle = glib::spawn_future_local(async move {
                 // Remove the spinner if it's still attached.
                 let remove_spinner = {
                     let messages = messages.clone();
@@ -458,20 +462,48 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
                 }
                 streaming.set(false);
             });
+            *active_stream.borrow_mut() = Some(handle);
         });
     }
 
-    // Esc → dismiss.
+    // Esc → clear the conversation if there is one, otherwise dismiss. The first
+    // press resets to an empty prompt; a second (now-empty) press closes.
     let key_controller = EventControllerKey::new();
-    let window_for_key = window.clone();
-    key_controller.connect_key_pressed(move |_, key, _, _| {
-        if key == gdk::Key::Escape {
-            window_for_key.close();
+    {
+        let window = window.clone();
+        let history = history.clone();
+        let messages = messages.clone();
+        let revealer = revealer.clone();
+        let entry_for_key = entry.clone();
+        let first_user_label = first_user_label.clone();
+        let streaming = streaming.clone();
+        let active_stream = active_stream.clone();
+        key_controller.connect_key_pressed(move |_, key, _, _| {
+            if key != gdk::Key::Escape {
+                return glib::Propagation::Proceed;
+            }
+            let has_chat = revealer.reveals_child() || !history.borrow().is_empty();
+            if !has_chat {
+                window.close();
+                return glib::Propagation::Stop;
+            }
+            // Clear: abort any in-flight reply, drop history and message widgets,
+            // collapse the chat, and restore the initial prompt.
+            if let Some(handle) = active_stream.borrow_mut().take() {
+                handle.abort();
+            }
+            streaming.set(false);
+            history.borrow_mut().clear();
+            first_user_label.borrow_mut().take();
+            while let Some(child) = messages.first_child() {
+                messages.remove(&child);
+            }
+            revealer.set_reveal_child(false);
+            entry_for_key.set_text("");
+            entry_for_key.set_placeholder_text(Some("Ask anything…"));
             glib::Propagation::Stop
-        } else {
-            glib::Propagation::Proceed
-        }
-    });
+        });
+    }
     window.add_controller(key_controller);
 
     // Clicking away (losing focus) → dismiss. The compositor's keybinding

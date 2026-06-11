@@ -263,14 +263,14 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
                 return;
             }
 
-            // The screenshot rides along on the first message only, as the
-            // OpenAI vision content array.
+            // The screenshot rides along on the first message only, as a
+            // Responses API content-part array.
             let content = match screenshot.borrow_mut().take() {
                 Some(data_url) => {
                     chip.set_visible(false);
                     json!([
-                        {"type": "text", "text": message},
-                        {"type": "image_url", "image_url": {"url": data_url}},
+                        {"type": "input_text", "text": message},
+                        {"type": "input_image", "image_url": data_url},
                     ])
                 }
                 None => json!(message),

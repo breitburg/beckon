@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 breitburg
 
-//! Streaming client for OpenAI-compatible chat completion endpoints.
+//! Streaming client for the OpenAI Responses API.
 //!
 //! The request runs on a plain worker thread with a blocking HTTP client and
 //! forwards parsed SSE deltas over an async channel; the UI side drains the
@@ -62,7 +62,7 @@ pub fn list_models(api: ApiConfig, sender: async_channel::Sender<Result<Vec<Stri
     });
 }
 
-/// POST `{base_url}/chat/completions` with `stream: true` on a worker thread,
+/// POST `{base_url}/responses` with `stream: true` on a worker thread,
 /// forwarding events to `sender`. Returns immediately.
 pub fn stream_chat(api: ApiConfig, messages: Vec<Value>, sender: async_channel::Sender<ChatEvent>) {
     std::thread::spawn(move || {
@@ -72,11 +72,13 @@ pub fn stream_chat(api: ApiConfig, messages: Vec<Value>, sender: async_channel::
 }
 
 fn run(api: &ApiConfig, messages: &[Value], sender: &async_channel::Sender<ChatEvent>) -> ChatEvent {
-    let url = format!("{}/chat/completions", api.base_url.trim_end_matches('/'));
+    let url = format!("{}/responses", api.base_url.trim_end_matches('/'));
     let body = json!({
         "model": api.model,
         "stream": true,
-        "messages": messages,
+        "input": messages,
+        // The conversation is resent in full each turn; no server-side state.
+        "store": false,
     });
 
     // Connect timeout only: the response is an open-ended stream.
@@ -117,12 +119,30 @@ fn run(api: &ApiConfig, messages: &[Value], sender: &async_channel::Sender<ChatE
         let Ok(chunk) = serde_json::from_str::<Value>(data) else {
             continue;
         };
-        // Role-only first chunk and the final chunk carry no content; skip.
-        if let Some(content) = chunk["choices"][0]["delta"]["content"].as_str() {
-            if sender.send_blocking(ChatEvent::Delta(content.to_string())).is_err() {
-                // Receiver dropped: the window was closed, stop streaming.
-                return ChatEvent::Done;
+        // Responses API events carry their type in the payload; only the text
+        // deltas, terminal states, and errors matter here.
+        match chunk["type"].as_str() {
+            Some("response.output_text.delta") => {
+                if let Some(delta) = chunk["delta"].as_str() {
+                    if sender.send_blocking(ChatEvent::Delta(delta.to_string())).is_err() {
+                        // Receiver dropped: the window was closed, stop streaming.
+                        return ChatEvent::Done;
+                    }
+                }
             }
+            Some("response.completed") => return ChatEvent::Done,
+            Some("response.failed") | Some("response.incomplete") => {
+                let message = chunk["response"]["error"]["message"]
+                    .as_str()
+                    .unwrap_or("The response did not complete")
+                    .to_string();
+                return ChatEvent::Error(message);
+            }
+            Some("error") => {
+                let message = chunk["message"].as_str().unwrap_or("Stream error").to_string();
+                return ChatEvent::Error(message);
+            }
+            _ => {}
         }
     }
     ChatEvent::Done

@@ -100,6 +100,8 @@ pub struct ToolInfo {
     pub label: &'static str,
     /// Tooltip describing what the tool does (and any risk).
     pub description: &'static str,
+    /// Name of a built-in (themed) icon shown beside the label in settings.
+    pub icon: &'static str,
 }
 
 /// Every tool the user can enable. Adding a tool means adding a `ToolInfo` here
@@ -109,6 +111,7 @@ pub fn catalog() -> &'static [ToolInfo] {
         name: "bash",
         label: "Shell (bash)",
         description: "Lets the assistant run shell commands on your machine. Powerful — only enable if you trust the model and endpoint.",
+        icon: "utilities-terminal-symbolic",
     }]
 }
 

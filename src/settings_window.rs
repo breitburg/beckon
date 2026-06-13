@@ -17,8 +17,8 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{
     Align, Application, ApplicationWindow, Box as GtkBox, Button, CheckButton, DropDown, Entry,
-    EventControllerKey, Grid, HeaderBar, Label, MenuButton, Orientation, PasswordEntry,
-    StringList, StringObject, Switch, Widget,
+    EventControllerKey, Frame, Grid, HeaderBar, Image, Label, MenuButton, Orientation,
+    PasswordEntry, StringList, StringObject, Switch, Widget,
 };
 
 use crate::api;
@@ -350,18 +350,30 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     window.add_controller(key_controller);
 
     // --- Tools --------------------------------------------------------------
-    // One checkbox per available tool; ticking adds its name to the enabled
-    // list the spotlight passes to the model.
+    // One checkbox per available tool, gathered in a framed box; each row pairs
+    // the tool's built-in icon with its label, and ticking adds its name to the
+    // enabled list the spotlight passes to the model.
     let tools_box = GtkBox::builder()
         .orientation(Orientation::Vertical)
         .spacing(6)
+        .margin_top(8)
+        .margin_bottom(8)
+        .margin_start(8)
+        .margin_end(8)
         .build();
     for info in tools::catalog() {
+        let row = GtkBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(8)
+            .build();
+        row.append(&Image::from_icon_name(info.icon));
+        row.append(&Label::new(Some(info.label)));
+
         let check = CheckButton::builder()
-            .label(info.label)
             .active(config.borrow().enabled_tools.iter().any(|t| t == info.name))
             .tooltip_text(info.description)
             .build();
+        check.set_child(Some(&row));
         {
             let config = config.clone();
             let name = info.name;
@@ -376,7 +388,9 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
         }
         tools_box.append(&check);
     }
-    add_top_row(&grid, 6, "Tools", &tools_box);
+    let tools_frame = Frame::new(None);
+    tools_frame.set_child(Some(&tools_box));
+    add_top_row(&grid, 6, "Tools", &tools_frame);
 
     // --- Start on login ----------------------------------------------------
     let login_switch = Switch::builder()

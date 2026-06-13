@@ -12,6 +12,7 @@ mod screenshot;
 mod settings_window;
 mod spotlight;
 mod tools;
+mod transcript;
 
 use gtk4::prelude::*;
 

@@ -9,6 +9,8 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use gtk4::gdk;
+use gtk4::gdk_pixbuf;
+use gtk4::gio;
 use gtk4::glib;
 use gtk4::pango::WrapMode;
 use gtk4::prelude::*;
@@ -26,6 +28,7 @@ use crate::config::Config;
 use crate::markdown;
 use crate::settings_window;
 use crate::tools;
+use crate::transcript::Transcript;
 
 /// Corner radius of the card, in pixels. Single source of truth: it both
 /// clips the compositor blur region (below) and is substituted into the
@@ -38,98 +41,67 @@ pub const CORNER_RADIUS: u32 = 8;
 /// without horizontal drift.
 const WINDOW_WIDTH: i32 = 620;
 
-/// Trim surrounding whitespace and collapse any run of three or more newlines
-/// down to a blank-line gap, recursively. Applied to both the user's message
-/// and the streaming reply before display.
-fn clean(text: &str) -> String {
-    let mut text = text.trim().to_string();
-    while text.contains("\n\n\n") {
-        text = text.replace("\n\n\n", "\n\n");
-    }
-    text
-}
+/// Widest, in pixels, an attached image is shown inline in the chat. The
+/// full-resolution data URL still rides along to the model; only the on-screen
+/// thumbnail is bounded.
+const ATTACHMENT_MAX_WIDTH: f64 = 220.0;
 
-/// Longest edge, in pixels, of an attached image as shown inline in the chat.
-/// The full-resolution data URL still rides along to the model; only the
-/// on-screen thumbnail is bounded.
-const ATTACHMENT_MAX_EDGE: f64 = 220.0;
+/// Tallest, in pixels, an attached image is shown inline; aspect-preserving, so
+/// the height is the binding cap for wide screenshots.
+const ATTACHMENT_MAX_HEIGHT: f64 = 100.0;
 
-/// Decode a `data:…;base64,…` URL into a GPU texture, or `None` if it isn't a
-/// base64 data URL or the bytes don't parse as an image. Used to render the
-/// images carried in a message's content parts back into the chat.
-fn texture_from_data_url(data_url: &str) -> Option<gdk::Texture> {
+/// A bounded, left-aligned thumbnail for an inline image attachment from a
+/// `data:…;base64,…` URL, or `None` if it isn't a base64 data URL or the bytes
+/// don't decode as an image.
+///
+/// The source is scaled down *at decode time* to fit within `ATTACHMENT_MAX_WIDTH`
+/// by `ATTACHMENT_MAX_HEIGHT` (aspect preserved), so the thumbnail's intrinsic
+/// size is the bound. The full-resolution data URL still rides along to the model.
+///
+/// The picture is returned inside a start-aligned horizontal box, and that nesting
+/// is load-bearing: a `Picture` preserves aspect, so it answers a height-for-width
+/// query with `width / aspect`. The user message is a *vertical* box, which measures
+/// each child's height at the column's full width — typically the wider text label's
+/// width — so a bare picture would reserve `column_width / aspect` of vertical space
+/// and then draw the (narrower) image letterboxed inside it, leaving a tall gap. A
+/// *horizontal* wrapper is instead measured at the picture's own width, so the row
+/// is exactly the thumbnail's height.
+fn attachment_thumbnail(data_url: &str) -> Option<GtkBox> {
     let base64 = data_url.split_once(";base64,").map(|(_, data)| data)?;
     let bytes = glib::Bytes::from_owned(glib::base64_decode(base64));
-    gdk::Texture::from_bytes(&bytes).ok()
-}
-
-/// A bounded, left-aligned thumbnail for an inline image attachment. The aspect
-/// ratio is preserved and the longest edge is capped at `ATTACHMENT_MAX_EDGE`.
-fn attachment_thumbnail(texture: &gdk::Texture) -> Picture {
-    let picture = Picture::for_paintable(texture);
-    picture.set_halign(Align::Start);
+    let stream = gio::MemoryInputStream::from_bytes(&bytes);
+    let pixbuf = gdk_pixbuf::Pixbuf::from_stream_at_scale(
+        &stream,
+        ATTACHMENT_MAX_WIDTH as i32,
+        ATTACHMENT_MAX_HEIGHT as i32,
+        true,
+        gio::Cancellable::NONE,
+    )
+    .ok()?;
+    let (width, height) = (pixbuf.width(), pixbuf.height());
+    let picture = Picture::for_paintable(&gdk::Texture::for_pixbuf(&pixbuf));
     picture.set_content_fit(ContentFit::Contain);
-    picture.set_can_shrink(true);
-    let (width, height) = (texture.width() as f64, texture.height() as f64);
-    let scale = (ATTACHMENT_MAX_EDGE / width.max(height)).min(1.0);
-    picture.set_size_request((width * scale).round() as i32, (height * scale).round() as i32);
+    picture.set_can_shrink(false);
+    picture.set_size_request(width, height);
     picture.add_css_class("user-attachment");
-    picture
+
+    let frame = GtkBox::builder()
+        .orientation(Orientation::Horizontal)
+        .halign(Align::Start)
+        .valign(Align::Start)
+        .build();
+    frame.append(&picture);
+    Some(frame)
 }
 
-/// Duration over which a freshly arrived chunk fades from faint to opaque.
-const FADE: std::time::Duration = std::time::Duration::from_millis(250);
-
-/// Streaming render state. Text that has finished fading is kept in `settled`
-/// and rendered with full markdown; chunks still within the fade window trail
-/// it as plain, alpha-ramped spans so new text fades in as it arrives.
-#[derive(Default)]
-struct FadeState {
-    settled: String,
-    /// Cached `markdown::to_pango(&settled)`, recomputed only when `settled`
-    /// grows — the fade ticker renders every frame and must not re-parse the
-    /// whole body each time.
-    settled_markup: String,
-    pending: Vec<(String, std::time::Instant)>,
-}
-
-impl FadeState {
-    fn push(&mut self, chunk: String, now: std::time::Instant) {
-        self.pending.push((chunk, now));
-    }
-
-    /// Move chunks whose fade has completed into the settled body. Arrivals are
-    /// monotonic, so expired chunks are always at the front.
-    fn settle(&mut self, now: std::time::Instant) {
-        let mut grew = false;
-        while self
-            .pending
-            .first()
-            .is_some_and(|(_, arrival)| now.duration_since(*arrival) >= FADE)
-        {
-            let (text, _) = self.pending.remove(0);
-            self.settled.push_str(&text);
-            grew = true;
-        }
-        if grew {
-            self.settled_markup = markdown::to_pango(&self.settled);
-        }
-    }
-
-    /// Markdown for the settled body, followed by each still-fading chunk in a
-    /// span whose alpha reflects how far through the fade it is.
-    fn to_markup(&self, now: std::time::Instant) -> String {
-        let mut markup = self.settled_markup.clone();
-        for (text, arrival) in &self.pending {
-            let progress = now.duration_since(*arrival).as_secs_f64() / FADE.as_secs_f64();
-            let percent = (progress.clamp(0.0, 1.0) * 100.0).max(1.0) as u32;
-            markup.push_str(&format!(
-                "<span alpha=\"{percent}%\">{}</span>",
-                glib::markup_escape_text(text)
-            ));
-        }
-        markup
-    }
+/// A tool call's `arguments` (a JSON-encoded string) pretty-printed for display
+/// in its disclosure, falling back to the raw string if it isn't valid JSON.
+fn pretty_args(item: &Value) -> String {
+    let raw = item["arguments"].as_str().unwrap_or("");
+    serde_json::from_str::<Value>(raw)
+        .ok()
+        .and_then(|value| serde_json::to_string_pretty(&value).ok())
+        .unwrap_or_else(|| raw.to_string())
 }
 
 /// Build, wire up and present the entry window. `screenshot` is an OpenAI
@@ -204,6 +176,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
+        // As the scrolled window's child, the viewport stretches it to fill when
+        // it is shorter than the visible area; hug the top instead so a single
+        // short message keeps its own height rather than filling vertically.
+        .valign(Align::Start)
         .build();
     messages.add_css_class("messages");
 
@@ -240,6 +216,9 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
     // Handle to the in-flight reply task, so Escape-to-clear can abort it
     // (dropping the channel receiver, which stops the worker thread).
     let active_stream: Rc<RefCell<Option<glib::JoinHandle<()>>>> = Rc::new(RefCell::new(None));
+    // The transcript rendering the current turn, shared so Escape-to-clear can
+    // tear it down from its own (separate) controller closure.
+    let active_transcript: Rc<RefCell<Option<Transcript>>> = Rc::new(RefCell::new(None));
     // The first user message is hidden while the chat is a single exchange; it
     // is revealed once a second turn arrives and the history becomes worth
     // scrolling back through. Holds the whole message row (text plus any
@@ -287,9 +266,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
         let screenshot = screenshot.clone();
         let first_user_message = first_user_message.clone();
         let active_stream = active_stream.clone();
+        let active_transcript = active_transcript.clone();
         entry.connect_activate(move |entry| {
             let text = entry.text();
-            let message = clean(&text);
+            let message = markdown::clean(&text);
             if message.is_empty() || streaming.get() {
                 return;
             }
@@ -322,14 +302,17 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
 
             // The user's turn is a column: attachment thumbnails stacked above
             // the text, so an image shows in the chat the same way it was sent.
+            // Hug the content vertically (Start) rather than filling the row, so
+            // the image keeps its own height instead of stretching to fill.
             let user_message = GtkBox::builder()
                 .orientation(Orientation::Vertical)
                 .spacing(8)
                 .halign(Align::Start)
+                .valign(Align::Start)
                 .build();
             for data_url in &attachments {
-                if let Some(texture) = texture_from_data_url(data_url) {
-                    user_message.append(&attachment_thumbnail(&texture));
+                if let Some(thumbnail) = attachment_thumbnail(data_url) {
+                    user_message.append(&thumbnail);
                 }
             }
             let user_label = Label::builder()
@@ -371,95 +354,11 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
                 revealer.set_reveal_child(true);
             }
 
-            let reply_label = Label::builder()
-                .halign(Align::Fill)
-                .hexpand(true)
-                .xalign(0.0)
-                .wrap(true)
-                .wrap_mode(WrapMode::WordChar)
-                .selectable(true)
-                .use_markup(true)
-                .build();
-            reply_label.add_css_class("assistant-message");
-
-            // Reasoning disclosure. Only attached to the tree if the stream
-            // carries a reasoning trace: a flat header toggles a revealer
-            // holding the dimmed, markdown-rendered thinking. It auto-expands
-            // while the model thinks, then collapses to a reopenable "Thought
-            // for Ns" line once the answer begins.
-            let reasoning_label = Label::builder()
-                .halign(Align::Fill)
-                .hexpand(true)
-                .xalign(0.0)
-                .wrap(true)
-                .wrap_mode(WrapMode::WordChar)
-                .selectable(true)
-                .use_markup(true)
-                .build();
-            reasoning_label.add_css_class("reasoning-summary");
-
-            let reasoning_revealer = Revealer::builder()
-                .transition_type(RevealerTransitionType::SlideDown)
-                .transition_duration(200)
-                .reveal_child(true)
-                .child(&reasoning_label)
-                .build();
-
-            let reasoning_chevron = Image::from_icon_name("pan-down-symbolic");
-            let reasoning_title = Label::new(Some("Thinking…"));
-            let reasoning_header = GtkBox::builder()
-                .orientation(Orientation::Horizontal)
-                .spacing(6)
-                .build();
-            reasoning_header.append(&reasoning_chevron);
-            reasoning_header.append(&reasoning_title);
-
-            let reasoning_toggle = Button::builder().child(&reasoning_header).build();
-            reasoning_toggle.add_css_class("flat");
-            reasoning_toggle.add_css_class("reasoning-toggle");
-            reasoning_toggle.set_halign(Align::Start);
-
-            let reasoning_box = GtkBox::builder()
-                .orientation(Orientation::Vertical)
-                .spacing(2)
-                .build();
-            reasoning_box.add_css_class("reasoning");
-            reasoning_box.append(&reasoning_toggle);
-            reasoning_box.append(&reasoning_revealer);
-
-            // The header toggles the trace open or closed; the chevron tracks it.
-            {
-                let revealer = reasoning_revealer.clone();
-                let chevron = reasoning_chevron.clone();
-                reasoning_toggle.connect_clicked(move |_| {
-                    let open = !revealer.reveals_child();
-                    revealer.set_reveal_child(open);
-                    chevron.set_icon_name(Some(if open {
-                        "pan-down-symbolic"
-                    } else {
-                        "pan-end-symbolic"
-                    }));
-                });
-            }
-
-            // A spinner stands in for the reply until the first token lands;
-            // the reply label is only added to the tree once there's text, so
-            // nothing but the spinner shows while waiting. A caption beside it
-            // names a running tool ("Running bash…") and is hidden otherwise.
-            let spinner_row = GtkBox::builder()
-                .orientation(Orientation::Horizontal)
-                .spacing(8)
-                .halign(Align::Start)
-                .build();
-            let spinner = gtk4::Spinner::new();
-            spinner.add_css_class("reply-spinner");
-            spinner.start();
-            spinner_row.append(&spinner);
-            let tool_label = Label::new(None);
-            tool_label.add_css_class("tool-status");
-            tool_label.set_visible(false);
-            spinner_row.append(&tool_label);
-            messages.append(&spinner_row);
+            // Reasoning, tool calls and answer text render into this turn's
+            // transcript in arrival order. Shared so Escape can tear it down.
+            let transcript = Transcript::new(messages.clone(), &user_message);
+            transcript.set_busy(true);
+            *active_transcript.borrow_mut() = Some(transcript.clone());
 
             streaming.set(true);
             let (api_config, system_prompt) = {
@@ -487,188 +386,44 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
 
             let history = history.clone();
             let streaming = streaming.clone();
-            let messages = messages.clone();
             let handle = glib::spawn_future_local(async move {
-                // Remove the spinner row (spinner + tool caption) if attached.
-                let remove_spinner = {
-                    let messages = messages.clone();
-                    let spinner_row = spinner_row.clone();
-                    move || {
-                        if spinner_row.parent().is_some() {
-                            messages.remove(&spinner_row);
-                        }
-                    }
-                };
-                // Swap the spinner out for the reply label the first time there
-                // is something to show (a token or an error). Idempotent.
-                let present_reply = {
-                    let messages = messages.clone();
-                    let reply_label = reply_label.clone();
-                    let remove_spinner = remove_spinner.clone();
-                    move || {
-                        remove_spinner();
-                        if reply_label.parent().is_none() {
-                            messages.append(&reply_label);
-                        }
-                    }
-                };
-                // When this turn started, used to label the collapsed trace.
-                let started = std::time::Instant::now();
-                let reasoning_collapsed = Rc::new(Cell::new(false));
-
-                // Reveal the reasoning trace above the answer the first time a
-                // reasoning chunk arrives (dropping the spinner). Idempotent.
-                let present_reasoning = {
-                    let messages = messages.clone();
-                    let reasoning_box = reasoning_box.clone();
-                    let remove_spinner = remove_spinner.clone();
-                    move || {
-                        remove_spinner();
-                        if reasoning_box.parent().is_none() {
-                            messages.append(&reasoning_box);
-                        }
-                    }
-                };
-
-                // Collapse the trace once the answer begins, relabelling the
-                // header with how long the model thought. Idempotent.
-                let collapse_reasoning = {
-                    let collapsed = reasoning_collapsed.clone();
-                    let revealer = reasoning_revealer.clone();
-                    let chevron = reasoning_chevron.clone();
-                    let title = reasoning_title.clone();
-                    let reasoning_box = reasoning_box.clone();
-                    move || {
-                        if collapsed.get() || reasoning_box.parent().is_none() {
-                            return;
-                        }
-                        collapsed.set(true);
-                        revealer.set_reveal_child(false);
-                        chevron.set_icon_name(Some("pan-end-symbolic"));
-                        let secs = started.elapsed().as_secs();
-                        title.set_label(&if secs == 0 {
-                            "Thought for a moment".to_string()
-                        } else {
-                            format!("Thought for {secs}s")
-                        });
-                    }
-                };
-
-                let mut reasoning_acc = String::new();
-                let fade = Rc::new(RefCell::new(FadeState::default()));
-                let finished = Rc::new(Cell::new(false));
-                let ticking = Rc::new(Cell::new(false));
-
-                let render = {
-                    let reply_label = reply_label.clone();
-                    let fade = fade.clone();
-                    move || reply_label.set_markup(&fade.borrow().to_markup(std::time::Instant::now()))
-                };
-
-                // While chunks are fading, keep re-rendering on a frame timer so
-                // their alpha ramps even when the stream pauses; the timer stops
-                // itself once everything has settled (or the stream finishes).
-                let start_ticker = {
-                    let fade = fade.clone();
-                    let ticking = ticking.clone();
-                    let finished = finished.clone();
-                    let render = render.clone();
-                    move || {
-                        if ticking.get() {
-                            return;
-                        }
-                        ticking.set(true);
-                        let fade = fade.clone();
-                        let ticking = ticking.clone();
-                        let finished = finished.clone();
-                        let render = render.clone();
-                        glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
-                            if finished.get() {
-                                ticking.set(false);
-                                return glib::ControlFlow::Break;
-                            }
-                            fade.borrow_mut().settle(std::time::Instant::now());
-                            render();
-                            if fade.borrow().pending.is_empty() {
-                                ticking.set(false);
-                                glib::ControlFlow::Break
-                            } else {
-                                glib::ControlFlow::Continue
-                            }
-                        });
-                    }
-                };
-
+                // The visible answer is accumulated here only to persist it as a
+                // single assistant message once the turn ends; rendering (and the
+                // tool-call/output items) is the transcript's job.
                 let mut accumulated = String::new();
                 let mut errored = false;
                 while let Ok(event) = receiver.recv().await {
                     match event {
-                        ChatEvent::Reasoning(delta) => {
-                            reasoning_acc.push_str(&delta);
-                            present_reasoning();
-                            reasoning_label
-                                .set_markup(&markdown::to_pango(&clean(&reasoning_acc)));
-                        }
+                        ChatEvent::Reasoning(delta) => transcript.push_reasoning(&delta),
                         ChatEvent::Delta(delta) => {
-                            // The answer is starting: tuck the thinking away.
-                            collapse_reasoning();
                             accumulated.push_str(&delta);
-                            present_reply();
-                            fade.borrow_mut().push(delta, std::time::Instant::now());
-                            render();
-                            start_ticker();
+                            transcript.push_answer(&delta);
                         }
                         ChatEvent::ToolCall { name, item } => {
-                            // Persist the call so follow-up turns include it.
+                            // Persist the call so follow-up turns include it, and
+                            // render it inline with its arguments.
+                            let args = pretty_args(&item);
                             history.borrow_mut().push(item);
-                            // Show progress: ensure the spinner row is visible
-                            // (an earlier turn's text may have removed it) and
-                            // caption it with the running tool.
-                            if spinner_row.parent().is_none() {
-                                messages.append(&spinner_row);
-                                spinner.start();
-                            }
-                            tool_label.set_text(&format!("Running {name}…"));
-                            tool_label.set_visible(true);
+                            transcript.push_tool_call(&name, &args);
                         }
                         ChatEvent::ToolResult { item } => {
-                            // Persist the output right after its matching call.
+                            // Persist the output right after its matching call and
+                            // fill it into the call's disclosure.
+                            let output =
+                                item["output"].as_str().unwrap_or_default().to_string();
                             history.borrow_mut().push(item);
+                            transcript.push_tool_result(&output);
                         }
                         ChatEvent::Done => break,
                         ChatEvent::Error(message) => {
                             errored = true;
-                            present_reply();
-                            let error_line =
-                                format!("<i>{}</i>", glib::markup_escape_text(&message));
-                            if accumulated.is_empty() {
-                                reply_label.add_css_class("error");
-                                reply_label.set_markup(&error_line);
-                            } else {
-                                // Keep the partial answer visible; the error
-                                // class would tint all of it, so skip it here.
-                                reply_label.set_markup(&format!(
-                                    "{}\n\n{error_line}",
-                                    markdown::to_pango(&clean(&accumulated))
-                                ));
-                            }
+                            transcript.show_error(&message);
                             break;
                         }
                     }
                 }
-                // Stop any in-flight fade. If the stream ended without content,
-                // just drop the spinner — no empty reply label is added.
-                finished.set(true);
-                remove_spinner();
-                // If the model only ever produced reasoning (no answer, or an
-                // error mid-thought), leave the trace open but relabel it so the
-                // header isn't stuck on "Thinking…".
-                if reasoning_box.parent().is_some() && !reasoning_collapsed.get() {
-                    reasoning_title.set_label("Reasoning");
-                }
+                transcript.finish();
                 if !errored && !accumulated.is_empty() {
-                    // Snap to the final, fully opaque markdown render.
-                    reply_label.set_markup(&markdown::to_pango(&clean(&accumulated)));
                     history
                         .borrow_mut()
                         .push(json!({"role": "assistant", "content": accumulated}));
@@ -685,12 +440,12 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
     {
         let window = window.clone();
         let history = history.clone();
-        let messages = messages.clone();
         let revealer = revealer.clone();
         let entry_for_key = entry.clone();
         let first_user_message = first_user_message.clone();
         let streaming = streaming.clone();
         let active_stream = active_stream.clone();
+        let active_transcript = active_transcript.clone();
         key_controller.connect_key_pressed(move |_, key, _, _| {
             if key != gdk::Key::Escape {
                 return glib::Propagation::Proceed;
@@ -708,8 +463,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
             streaming.set(false);
             history.borrow_mut().clear();
             first_user_message.borrow_mut().take();
-            while let Some(child) = messages.first_child() {
-                messages.remove(&child);
+            // Tearing the transcript down stops its fade ticker and removes every
+            // rendered block (the user rows and assistant content alike).
+            if let Some(transcript) = active_transcript.borrow_mut().take() {
+                transcript.clear();
             }
             revealer.set_reveal_child(false);
             entry_for_key.set_text("");

@@ -10,6 +10,17 @@
 
 use gtk4::glib;
 
+/// Trim surrounding whitespace and collapse any run of three or more newlines
+/// down to a blank-line gap. Applied to the user's message and to reasoning and
+/// answer text before display, so streamed gaps don't accumulate.
+pub fn clean(text: &str) -> String {
+    let mut text = text.trim().to_string();
+    while text.contains("\n\n\n") {
+        text = text.replace("\n\n\n", "\n\n");
+    }
+    text
+}
+
 pub fn to_pango(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut in_code_block = false;

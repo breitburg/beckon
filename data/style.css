@@ -129,31 +129,33 @@ window.spotlight .reply-spinner {
     min-height: 18px;
 }
 
-/* Caption beside the spinner naming a running tool ("Running bash…"). */
-window.spotlight .tool-status {
-    color: alpha(@theme_fg_color, 0.6);
-    font-size: 0.9em;
-}
-
 window.spotlight .assistant-message.error {
     color: @error_color;
 }
 
-/* Reasoning trace: a quiet, secondary disclosure above the answer. The header
- * is a compact flat toggle (inheriting the dimmed-button styling, full opacity
- * on hover); the summary reads as hushed, indented thinking set off by a rule.
- * Scoped past the card's generic button padding with the `button` type. */
-window.spotlight button.reasoning-toggle {
+/* Disclosure: a quiet, secondary block — used for both reasoning traces and
+ * tool calls so they read identically. The header is a compact flat toggle
+ * (inheriting the dimmed-button styling, full opacity on hover); the body reads
+ * as hushed, indented detail set off by a rule. Scoped past the card's generic
+ * button padding with the `button` type. */
+window.spotlight button.disclosure-toggle {
     padding: 2px 4px;
     font-size: 0.85em;
 }
 
-window.spotlight .reasoning-toggle image {
+window.spotlight .disclosure-toggle image {
     -gtk-icon-size: 13px;
     opacity: 0.7;
 }
 
-window.spotlight .reasoning-summary {
+/* The header's running spinner stands in for the chevron while a tool runs. */
+window.spotlight .disclosure-toggle spinner {
+    min-width: 13px;
+    min-height: 13px;
+    opacity: 0.7;
+}
+
+window.spotlight .disclosure-body {
     margin: 2px 4px 2px 7px;
     padding-left: 12px;
     border-left: 1px solid alpha(@theme_fg_color, 0.15);

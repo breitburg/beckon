@@ -349,10 +349,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     }
     window.add_controller(key_controller);
 
-    // --- Tools --------------------------------------------------------------
-    // One checkbox per available tool, gathered in a framed box; each row pairs
-    // the tool's built-in icon with its label, and ticking adds its name to the
-    // enabled list the spotlight passes to the model.
+    // --- Toolsets -----------------------------------------------------------
+    // One checkbox per available toolset, gathered in a framed box; each row
+    // pairs the toolset's built-in icon with its label, and ticking adds its
+    // name to the enabled list the spotlight passes to the model.
     let tools_box = GtkBox::builder()
         .orientation(Orientation::Vertical)
         .spacing(6)
@@ -370,7 +370,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
         row.append(&Label::new(Some(info.label)));
 
         let check = CheckButton::builder()
-            .active(config.borrow().enabled_tools.iter().any(|t| t == info.name))
+            .active(config.borrow().enabled_toolsets.iter().any(|t| t == info.name))
             .tooltip_text(info.description)
             .build();
         check.set_child(Some(&row));
@@ -379,9 +379,9 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
             let name = info.name;
             check.connect_toggled(move |check| {
                 let mut config = config.borrow_mut();
-                config.enabled_tools.retain(|t| t != name);
+                config.enabled_toolsets.retain(|t| t != name);
                 if check.is_active() {
-                    config.enabled_tools.push(name.to_string());
+                    config.enabled_toolsets.push(name.to_string());
                 }
                 config.save();
             });
@@ -390,7 +390,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     }
     let tools_frame = Frame::new(None);
     tools_frame.set_child(Some(&tools_box));
-    add_top_row(&grid, 6, "Tools", &tools_frame);
+    add_top_row(&grid, 6, "Toolsets", &tools_frame);
 
     // --- Start on login ----------------------------------------------------
     let login_switch = Switch::builder()

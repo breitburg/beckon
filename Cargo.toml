@@ -22,3 +22,5 @@ async-channel = "2"
 wayland-client = "0.31"
 wayland-backend = { version = "0.3", features = ["client_system"] }
 wayland-scanner = "0.31"
+# Bundled SQLite so reading Evolution/Camel's mail cache needs no system lib.
+rusqlite = { version = "0.40.1", features = ["bundled"] }

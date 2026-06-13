@@ -380,7 +380,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
             payload.extend(history.borrow().iter().cloned());
             // Hand the model only the tools the user enabled; an empty registry
             // makes the request omit `tools` and behave exactly as before.
-            let registry = tools::registry_for(&config.borrow().enabled_tools);
+            let registry = tools::registry_for(&config.borrow().enabled_toolsets);
             let (sender, receiver) = async_channel::unbounded::<ChatEvent>();
             api::stream_chat(api_config, payload, registry, sender);
 

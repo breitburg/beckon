@@ -14,6 +14,9 @@ use std::process::Command;
 
 use serde_json::{json, Value};
 
+use crate::calendar;
+use crate::mail;
+
 /// A blocking tool executor. Receives the model's `arguments` already parsed
 /// into a `Value` object; returns the output string sent back to the model, or
 /// an error string (also surfaced to the model as the output, so it can retry).
@@ -28,7 +31,7 @@ pub struct Tool {
 }
 
 impl Tool {
-    fn new(
+    pub(crate) fn new(
         name: &str,
         description: &str,
         parameters: Value,
@@ -91,54 +94,74 @@ impl ToolRegistry {
     }
 }
 
-/// One available tool, as shown in the settings checkboxes. Lets the UI list
-/// the tools without constructing their executors.
-pub struct ToolInfo {
-    /// Stable identifier, stored in `config.enabled_tools` and sent to the model.
+/// One toolset the user can enable, as shown in the settings checkboxes. A
+/// toolset is a named group of one or more [`Tool`]s toggled together; the UI
+/// lists toolsets without constructing their executors.
+pub struct ToolsetInfo {
+    /// Stable identifier, stored in `config.enabled_toolsets` and used to build
+    /// the toolset's tools.
     pub name: &'static str,
     /// Human-readable label for the checkbox.
     pub label: &'static str,
-    /// Tooltip describing what the tool does (and any risk).
+    /// Tooltip describing what the toolset does (and any risk).
     pub description: &'static str,
     /// Name of a built-in (themed) icon shown beside the label in settings.
     pub icon: &'static str,
 }
 
-/// Every tool the user can enable. Adding a tool means adding a `ToolInfo` here
-/// and a matching arm in [`registry_for`].
-pub fn catalog() -> &'static [ToolInfo] {
-    &[ToolInfo {
-        name: "bash",
-        label: "Shell (bash)",
-        description: "Lets the assistant run shell commands on your machine. Powerful — only enable if you trust the model and endpoint.",
-        icon: "utilities-terminal-symbolic",
-    }]
+/// Every toolset the user can enable. Adding a toolset means adding a
+/// `ToolsetInfo` here and a matching arm in [`build_toolset`].
+pub fn catalog() -> &'static [ToolsetInfo] {
+    &[
+        ToolsetInfo {
+            name: "bash",
+            label: "Shell (bash)",
+            description: "Lets the assistant run shell commands on your machine. Powerful — only enable if you trust the model and endpoint.",
+            icon: "utilities-terminal-symbolic",
+        },
+        ToolsetInfo {
+            name: "calendar",
+            label: "Calendar",
+            description: "Lets the assistant read your calendar and create, modify, and delete events via Evolution Data Server. It can change your real calendar.",
+            icon: "io.elementary.calendar",
+        },
+        ToolsetInfo {
+            name: "mail",
+            label: "Mail",
+            description: "Lets the assistant search your locally-synced mail (subject, sender, recipients, date) via the Evolution/elementary Mail cache. Read-only.",
+            icon: "io.elementary.mail",
+        },
+    ]
 }
 
-/// Build a registry holding only the tools whose names appear in `enabled`.
-/// Unknown names (e.g. a tool removed in a later version) are ignored.
+/// Build a registry holding the tools of every toolset whose name appears in
+/// `enabled`. Unknown names (e.g. a toolset removed in a later version) are
+/// ignored.
 pub fn registry_for(enabled: &[String]) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     for name in enabled {
-        if let Some(tool) = build_tool(name) {
+        for tool in build_toolset(name) {
             registry.register(tool);
         }
     }
     registry
 }
 
-/// Construct the tool with the given name. Adding a tool means adding an arm
-/// here (and a `ToolInfo` in [`catalog`]).
-fn build_tool(name: &str) -> Option<Tool> {
+/// Construct the tools belonging to the named toolset. Adding a toolset means
+/// adding an arm here (and a `ToolsetInfo` in [`catalog`]). An unknown name
+/// yields no tools.
+fn build_toolset(name: &str) -> Vec<Tool> {
     match name {
-        "bash" => Some(bash_tool()),
-        _ => None,
+        "bash" => vec![bash_tool()],
+        "calendar" => calendar::tools(),
+        "mail" => mail::tools(),
+        _ => Vec::new(),
     }
 }
 
 /// Output past this many bytes is truncated, so a runaway command can't bloat
 /// every subsequent request in the conversation.
-const MAX_OUTPUT_BYTES: usize = 10 * 1024;
+pub(crate) const MAX_OUTPUT_BYTES: usize = 10 * 1024;
 
 /// Run a shell command via `sh -c` and return its combined output. Captures
 /// both stdout and stderr and always appends the exit status, so the model
@@ -189,7 +212,7 @@ fn bash_tool() -> Tool {
 
 /// Truncate `text` to at most `max_bytes`, on a char boundary, appending a note
 /// when anything was dropped.
-fn truncate(text: &mut String, max_bytes: usize) {
+pub(crate) fn truncate(text: &mut String, max_bytes: usize) {
     if text.len() <= max_bytes {
         return;
     }

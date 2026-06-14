@@ -5,11 +5,15 @@
    version="1.1"
    width="128"
    height="128"
-   id="svg-ai-chat">
+   viewBox="0 0 64 64"
+   id="svg-beckon-128">
   <defs
-     id="defs-ai-chat">
-    <linearGradient
-       id="shadowGradient">
+     id="defs-beckon-128">
+    <radialGradient
+       cx="0.5"
+       cy="0.5"
+       r="0.5"
+       id="shadowRadial">
       <stop
          id="shadowStop1"
          style="stop-color:#000000;stop-opacity:1"
@@ -18,19 +22,14 @@
          id="shadowStop2"
          style="stop-color:#000000;stop-opacity:0"
          offset="1" />
-    </linearGradient>
-    <radialGradient
-       r="18"
-       fy="38"
-       fx="26"
-       cy="38"
-       cx="26"
-       gradientTransform="matrix(2.8888888,0,0,0.77777775,-11.111109,74.444445)"
-       gradientUnits="userSpaceOnUse"
-       id="shadowRadial"
-       xlink:href="#shadowGradient" />
+    </radialGradient>
     <linearGradient
-       id="grapeGradient">
+       x1="32.5"
+       y1="13.5"
+       x2="32.5"
+       y2="51.5"
+       gradientUnits="userSpaceOnUse"
+       id="bodyGradient">
       <stop
          id="grapeStop1"
          style="stop-color:#e4c6fa;stop-opacity:1"
@@ -49,15 +48,12 @@
          offset="1" />
     </linearGradient>
     <linearGradient
-       x1="56.5"
-       y1="16.5"
-       x2="56.5"
-       y2="95.5"
+       x1="32.5"
+       y1="13.5"
+       x2="32.5"
+       y2="51.5"
        gradientUnits="userSpaceOnUse"
-       id="bodyGradient"
-       xlink:href="#grapeGradient" />
-    <linearGradient
-       id="highlightGradient">
+       id="innerHighlight">
       <stop
          id="highlightStop1"
          style="stop-color:#ffffff;stop-opacity:1"
@@ -75,14 +71,14 @@
          style="stop-color:#ffffff;stop-opacity:0.39215687"
          offset="1" />
     </linearGradient>
-    <linearGradient
-       x1="56.5"
-       y1="17.5"
-       x2="56.5"
-       y2="94.5"
-       gradientUnits="userSpaceOnUse"
-       id="innerHighlight"
-       xlink:href="#highlightGradient" />
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="bubbleClip">
+      <path
+         id="bubbleClipPath"
+         d="M 20,13.5 H 45 A 13.5,13.5 0 0 1 58.5,27 V 38 A 13.5,13.5 0 0 1 45,51.5 H 20 C 18.49,51.5 17.04,51.27 15.69,50.81 C 13.5,52.7 10.27,53.09 7.63,51.56 C 7.44,51.45 7.26,51.33 7.09,51.22 C 8.45,50.3 9.7,49.17 10.75,47.84 C 8.13,45.38 6.5,41.89 6.5,38 V 27 A 13.5,13.5 0 0 1 20,13.5 Z"
+         style="fill:#000000;fill-opacity:1;stroke:none" />
+    </clipPath>
     <linearGradient
        x1="0"
        y1="0"
@@ -99,10 +95,10 @@
          offset="0.55" />
     </linearGradient>
     <linearGradient
-       x1="64.5"
-       y1="78.5"
-       x2="64.5"
-       y2="87.5"
+       x1="32.5"
+       y1="39.5"
+       x2="32.5"
+       y2="44"
        gradientUnits="userSpaceOnUse"
        id="insetFaceMouth">
       <stop
@@ -116,40 +112,40 @@
     </linearGradient>
   </defs>
   <g
-     id="layer-ai-chat">
-    <path
-       d="m 116,104 a 52,14 0 0 1 -104,0 52,14 0 1 1 104,0 z"
+     id="layer-beckon-128">
+    <ellipse
+       cx="32.5"
+       cy="52"
+       rx="26"
+       ry="7"
        id="shadow"
        style="opacity:0.2;fill:url(#shadowRadial);fill-opacity:1;stroke:none" />
-    <g
-       id="bubble"
-       transform="translate(8,10)">
-      <path
-         style="fill:url(#bodyGradient);fill-opacity:1;stroke:#452981;stroke-width:1;stroke-opacity:0.49803922"
-         d="m 81.5,16.5 c 14.958,0 27,12.04089 27,26.997518 l 0,21.999448 c 0,14.956628 -12.042,26.997518 -27,26.997518 l -50,0 c -3.016658,0 -5.920404,-0.470248 -8.625,-1.374874 C 18.49117,94.891512 12.04216,95.67462 6.75,92.619472 6.385978,92.409324 6.02522,92.168884 5.6875,91.932036 8.401026,90.096822 10.903386,87.847464 13,85.182656 7.7686,80.264918 4.5,73.27634 4.5,65.496966 l 0,-21.999448 C 4.5,28.54089 16.542,16.5 31.5,16.5 l 50,0 z"
-         id="bubble-body" />
-      <path
-         id="bubble-highlight"
-         d="M 82.19853,17.499999 C 96,17.499999 107.5,29.5 107.5,43.472426 l 0,22.055148 c 0,14.553848 -10.747622,26.229846 -25.30147,26.229846 l -50.45956,0 c -2.939496,0 -5.937626,-0.525226 -8.560778,-1.40269 l -0.56767,-0.18922 -0.378446,0.378446 c -3.925571,3.37792 -10.451455,3.794678 -14.7592864,1.33318 2.3609988,-1.740422 4.4520444,-3.6631 6.3277234,-6.047316 l 0.56767,-0.756894 -0.693819,-0.630744 C 8.5896754,79.66192 5.4999996,73.087392 5.4999996,65.51845 l 0,-22.055148 c 0,-14.55385 11.6851244,-25.963303 26.2389704,-25.963303 z"
-         style="fill:none;stroke:url(#innerHighlight);stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.49803922" />
-    </g>
+    <path
+       style="fill:url(#bodyGradient);fill-opacity:1;stroke:#452981;stroke-width:1;stroke-opacity:0.49803922"
+       d="M 20,13.5 H 45 A 13.5,13.5 0 0 1 58.5,27 V 38 A 13.5,13.5 0 0 1 45,51.5 H 20 C 18.49,51.5 17.04,51.27 15.69,50.81 C 13.5,52.7 10.27,53.09 7.63,51.56 C 7.44,51.45 7.26,51.33 7.09,51.22 C 8.45,50.3 9.7,49.17 10.75,47.84 C 8.13,45.38 6.5,41.89 6.5,38 V 27 A 13.5,13.5 0 0 1 20,13.5 Z"
+       id="bubble-body" />
+    <path
+       clip-path="url(#bubbleClip)"
+       style="fill:none;stroke:url(#innerHighlight);stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.49803922"
+       d="M 20,13.5 H 45 A 13.5,13.5 0 0 1 58.5,27 V 38 A 13.5,13.5 0 0 1 45,51.5 H 20 C 18.49,51.5 17.04,51.27 15.69,50.81 C 13.5,52.7 10.27,53.09 7.63,51.56 C 7.44,51.45 7.26,51.33 7.09,51.22 C 8.45,50.3 9.7,49.17 10.75,47.84 C 8.13,45.38 6.5,41.89 6.5,38 V 27 A 13.5,13.5 0 0 1 20,13.5 Z"
+       id="bubble-highlight" />
     <g
        id="face">
       <path
          style="opacity:0.5;fill:#452981;fill-opacity:1;stroke:none"
-         d="m 49,42.5 c -2.485,0 -4.5,2.015 -4.5,4.5 l 0,15 c 0,2.485 2.015,4.5 4.5,4.5 2.485,0 4.5,-2.015 4.5,-4.5 l 0,-15 c 0,-2.485 -2.015,-4.5 -4.5,-4.5 z m 31,0 c -2.485,0 -4.5,2.015 -4.5,4.5 l 0,15 c 0,2.485 2.015,4.5 4.5,4.5 2.485,0 4.5,-2.015 4.5,-4.5 l 0,-15 c 0,-2.485 -2.015,-4.5 -4.5,-4.5 z"
+         d="m 24.5,21 c -1.381,0 -2.5,1.119 -2.5,2.5 l 0,7 c 0,1.381 1.119,2.5 2.5,2.5 1.381,0 2.5,-1.119 2.5,-2.5 l 0,-7 c 0,-1.381 -1.119,-2.5 -2.5,-2.5 z m 16,0 c -1.381,0 -2.5,1.119 -2.5,2.5 l 0,7 c 0,1.381 1.119,2.5 2.5,2.5 1.381,0 2.5,-1.119 2.5,-2.5 l 0,-7 c 0,-1.381 -1.119,-2.5 -2.5,-2.5 z"
          id="eyes-shadow" />
       <path
          style="fill:url(#insetFace);fill-opacity:1;stroke:none"
-         d="m 49,44 c -2.485,0 -4.5,2.015 -4.5,4.5 l 0,15 c 0,2.485 2.015,4.5 4.5,4.5 2.485,0 4.5,-2.015 4.5,-4.5 l 0,-15 c 0,-2.485 -2.015,-4.5 -4.5,-4.5 z m 31,0 c -2.485,0 -4.5,2.015 -4.5,4.5 l 0,15 c 0,2.485 2.015,4.5 4.5,4.5 2.485,0 4.5,-2.015 4.5,-4.5 l 0,-15 c 0,-2.485 -2.015,-4.5 -4.5,-4.5 z"
+         d="m 24.5,22 c -1.381,0 -2.5,1.119 -2.5,2.5 l 0,7 c 0,1.381 1.119,2.5 2.5,2.5 1.381,0 2.5,-1.119 2.5,-2.5 l 0,-7 c 0,-1.381 -1.119,-2.5 -2.5,-2.5 z m 16,0 c -1.381,0 -2.5,1.119 -2.5,2.5 l 0,7 c 0,1.381 1.119,2.5 2.5,2.5 1.381,0 2.5,-1.119 2.5,-2.5 l 0,-7 c 0,-1.381 -1.119,-2.5 -2.5,-2.5 z"
          id="eyes" />
       <path
-         style="opacity:0.5;fill:none;stroke:#452981;stroke-width:8;stroke-linecap:round;stroke-opacity:1"
-         d="m 46,81 c 8.5,1.6 28.5,1.6 37,0"
+         style="opacity:0.5;fill:none;stroke:#452981;stroke-width:4;stroke-linecap:round;stroke-opacity:1"
+         d="m 23,40.5 c 4.25,0.8 14.25,0.8 18.5,0"
          id="mouth-shadow" />
       <path
-         style="fill:none;stroke:url(#insetFaceMouth);stroke-width:8;stroke-linecap:round;stroke-opacity:1"
-         d="m 46,82.5 c 8.5,1.6 28.5,1.6 37,0"
+         style="fill:none;stroke:url(#insetFaceMouth);stroke-width:4;stroke-linecap:round;stroke-opacity:1"
+         d="m 23,41.5 c 4.25,0.8 14.25,0.8 18.5,0"
          id="mouth" />
     </g>
   </g>

@@ -5,6 +5,7 @@
    version="1.1"
    width="48"
    height="48"
+   viewBox="0 0 32 32"
    id="svg-beckon-48">
   <defs
      id="defs-beckon-48">
@@ -23,10 +24,10 @@
          offset="1" />
     </radialGradient>
     <linearGradient
-       x1="24"
-       y1="9.5"
-       x2="24"
-       y2="38.5"
+       x1="16.5"
+       y1="6.5"
+       x2="16.5"
+       y2="25.5"
        gradientUnits="userSpaceOnUse"
        id="bodyGradient">
       <stop
@@ -47,10 +48,10 @@
          offset="1" />
     </linearGradient>
     <linearGradient
-       x1="24"
-       y1="9.5"
-       x2="24"
-       y2="38.5"
+       x1="16.5"
+       y1="6.5"
+       x2="16.5"
+       y2="25.5"
        gradientUnits="userSpaceOnUse"
        id="innerHighlight">
       <stop
@@ -75,77 +76,38 @@
        id="bubbleClip">
       <path
          id="bubbleClipPath"
-         d="M 14.5,9.5 H 33.5 A 10,10 0 0 1 43.5,19.5 V 28.5 A 10,10 0 0 1 33.5,38.5 H 14.6 C 13.49,38.5 12.41,38.32 11.39,37.98 C 9.75,39.4 7.33,39.69 5.34,38.54 C 5.21,38.47 5.07,38.38 4.95,38.29 C 5.96,37.6 6.9,36.76 7.69,35.76 C 5.73,33.91 4.5,31.29 4.5,28.5 V 19.5 A 10,10 0 0 1 14.5,9.5 Z"
+         d="M 10,6.5 H 23 A 6.5,6.5 0 0 1 29.5,13 V 19 A 6.5,6.5 0 0 1 23,25.5 H 10.25 C 9.5,25.5 8.77,25.38 8.09,25.16 C 7,26.1 5.39,26.29 4.06,25.53 C 3.97,25.48 3.88,25.42 3.8,25.36 C 4.48,24.9 5.1,24.34 5.63,23.67 C 4.32,22.4 3.5,20.8 3.5,19 V 13 A 6.5,6.5 0 0 1 10,6.5 Z"
          style="fill:#000000;fill-opacity:1;stroke:none" />
     </clipPath>
-    <linearGradient
-       x1="0"
-       y1="0"
-       x2="0"
-       y2="1"
-       id="insetFace">
-      <stop
-         id="insetStop1"
-         style="stop-color:#cbbcdd;stop-opacity:1"
-         offset="0" />
-      <stop
-         id="insetStop2"
-         style="stop-color:#ffffff;stop-opacity:1"
-         offset="0.55" />
-    </linearGradient>
-    <linearGradient
-       x1="24"
-       y1="29.5"
-       x2="24"
-       y2="33"
-       gradientUnits="userSpaceOnUse"
-       id="insetFaceMouth">
-      <stop
-         id="insetMouthStop1"
-         style="stop-color:#cbbcdd;stop-opacity:1"
-         offset="0" />
-      <stop
-         id="insetMouthStop2"
-         style="stop-color:#ffffff;stop-opacity:1"
-         offset="0.55" />
-    </linearGradient>
   </defs>
   <g
      id="layer-beckon-48">
     <ellipse
-       cx="24"
-       cy="39"
-       rx="20"
-       ry="5.5"
+       cx="16.5"
+       cy="26"
+       rx="13"
+       ry="3.5"
        id="shadow"
        style="opacity:0.2;fill:url(#shadowRadial);fill-opacity:1;stroke:none" />
     <path
        style="fill:url(#bodyGradient);fill-opacity:1;stroke:#452981;stroke-width:1;stroke-opacity:0.49803922"
-       d="M 14.5,9.5 H 33.5 A 10,10 0 0 1 43.5,19.5 V 28.5 A 10,10 0 0 1 33.5,38.5 H 14.6 C 13.49,38.5 12.41,38.32 11.39,37.98 C 9.75,39.4 7.33,39.69 5.34,38.54 C 5.21,38.47 5.07,38.38 4.95,38.29 C 5.96,37.6 6.9,36.76 7.69,35.76 C 5.73,33.91 4.5,31.29 4.5,28.5 V 19.5 A 10,10 0 0 1 14.5,9.5 Z"
+       d="M 10,6.5 H 23 A 6.5,6.5 0 0 1 29.5,13 V 19 A 6.5,6.5 0 0 1 23,25.5 H 10.25 C 9.5,25.5 8.77,25.38 8.09,25.16 C 7,26.1 5.39,26.29 4.06,25.53 C 3.97,25.48 3.88,25.42 3.8,25.36 C 4.48,24.9 5.1,24.34 5.63,23.67 C 4.32,22.4 3.5,20.8 3.5,19 V 13 A 6.5,6.5 0 0 1 10,6.5 Z"
        id="bubble-body" />
     <path
        clip-path="url(#bubbleClip)"
        style="fill:none;stroke:url(#innerHighlight);stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.49803922"
-       d="M 14.5,9.5 H 33.5 A 10,10 0 0 1 43.5,19.5 V 28.5 A 10,10 0 0 1 33.5,38.5 H 14.6 C 13.49,38.5 12.41,38.32 11.39,37.98 C 9.75,39.4 7.33,39.69 5.34,38.54 C 5.21,38.47 5.07,38.38 4.95,38.29 C 5.96,37.6 6.9,36.76 7.69,35.76 C 5.73,33.91 4.5,31.29 4.5,28.5 V 19.5 A 10,10 0 0 1 14.5,9.5 Z"
+       d="M 10,6.5 H 23 A 6.5,6.5 0 0 1 29.5,13 V 19 A 6.5,6.5 0 0 1 23,25.5 H 10.25 C 9.5,25.5 8.77,25.38 8.09,25.16 C 7,26.1 5.39,26.29 4.06,25.53 C 3.97,25.48 3.88,25.42 3.8,25.36 C 4.48,24.9 5.1,24.34 5.63,23.67 C 4.32,22.4 3.5,20.8 3.5,19 V 13 A 6.5,6.5 0 0 1 10,6.5 Z"
        id="bubble-highlight" />
     <g
        id="face">
       <path
          style="opacity:0.5;fill:#452981;fill-opacity:1;stroke:none"
-         d="m 18,15 c -1.105,0 -2,0.895 -2,2 l 0,5 c 0,1.105 0.895,2 2,2 1.105,0 2,-0.895 2,-2 l 0,-5 c 0,-1.105 -0.895,-2 -2,-2 z m 12,0 c -1.105,0 -2,0.895 -2,2 l 0,5 c 0,1.105 0.895,2 2,2 1.105,0 2,-0.895 2,-2 l 0,-5 c 0,-1.105 -0.895,-2 -2,-2 z"
-         id="eyes-shadow" />
+         d="m 12,10 c -0.552,0 -1,0.448 -1,1 l 0,4 c 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 l 0,-4 c 0,-0.552 -0.448,-1 -1,-1 z m 9,0 c -0.552,0 -1,0.448 -1,1 l 0,4 c 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 l 0,-4 c 0,-0.552 -0.448,-1 -1,-1 z m -9,9 c -0.552,0 -1,0.448 -1,1 0,0.552 0.448,1 1,1 l 9,0 c 0.552,0 1,-0.448 1,-1 0,-0.552 -0.448,-1 -1,-1 l -9,0 z"
+         id="face-shadow" />
       <path
-         style="fill:url(#insetFace);fill-opacity:1;stroke:none"
-         d="m 18,16 c -1.105,0 -2,0.895 -2,2 l 0,5 c 0,1.105 0.895,2 2,2 1.105,0 2,-0.895 2,-2 l 0,-5 c 0,-1.105 -0.895,-2 -2,-2 z m 12,0 c -1.105,0 -2,0.895 -2,2 l 0,5 c 0,1.105 0.895,2 2,2 1.105,0 2,-0.895 2,-2 l 0,-5 c 0,-1.105 -0.895,-2 -2,-2 z"
-         id="eyes" />
-      <path
-         style="opacity:0.5;fill:none;stroke:#452981;stroke-width:3;stroke-linecap:round;stroke-opacity:1"
-         d="m 17,30 c 3.2,0.6 10.8,0.6 14,0"
-         id="mouth-shadow" />
-      <path
-         style="fill:none;stroke:url(#insetFaceMouth);stroke-width:3;stroke-linecap:round;stroke-opacity:1"
-         d="m 17,31 c 3.2,0.6 10.8,0.6 14,0"
-         id="mouth" />
+         style="fill:#ffffff;fill-opacity:1;stroke:none"
+         d="m 12,11 c -0.552,0 -1,0.448 -1,1 l 0,4 c 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 l 0,-4 c 0,-0.552 -0.448,-1 -1,-1 z m 9,0 c -0.552,0 -1,0.448 -1,1 l 0,4 c 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 l 0,-4 c 0,-0.552 -0.448,-1 -1,-1 z m -9,9 c -0.552,0 -1,0.448 -1,1 0,0.552 0.448,1 1,1 l 9,0 c 0.552,0 1,-0.448 1,-1 0,-0.552 -0.448,-1 -1,-1 l -9,0 z"
+         id="face-white" />
     </g>
   </g>
 </svg>

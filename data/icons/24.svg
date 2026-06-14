@@ -5,28 +5,15 @@
    version="1.1"
    width="24"
    height="24"
+   viewBox="0 0 16 16"
    id="svg-beckon-24">
   <defs
      id="defs-beckon-24">
-    <radialGradient
-       cx="0.5"
-       cy="0.5"
-       r="0.5"
-       id="shadowRadial">
-      <stop
-         id="shadowStop1"
-         style="stop-color:#000000;stop-opacity:1"
-         offset="0" />
-      <stop
-         id="shadowStop2"
-         style="stop-color:#000000;stop-opacity:0"
-         offset="1" />
-    </radialGradient>
     <linearGradient
-       x1="12"
-       y1="5.5"
-       x2="12"
-       y2="19.5"
+       x1="8"
+       y1="3.5"
+       x2="8"
+       y2="13.5"
        gradientUnits="userSpaceOnUse"
        id="bodyGradient">
       <stop
@@ -47,10 +34,10 @@
          offset="1" />
     </linearGradient>
     <linearGradient
-       x1="12"
-       y1="5.5"
-       x2="12"
-       y2="19.5"
+       x1="8"
+       y1="3.5"
+       x2="8"
+       y2="13.5"
        gradientUnits="userSpaceOnUse"
        id="innerHighlight">
       <stop
@@ -60,11 +47,11 @@
       <stop
          id="highlightStop2"
          style="stop-color:#ffffff;stop-opacity:0.23529412"
-         offset="0.33333334" />
+         offset="0.49306786" />
       <stop
          id="highlightStop3"
          style="stop-color:#ffffff;stop-opacity:0.15686275"
-         offset="0.95056331" />
+         offset="0.91666669" />
       <stop
          id="highlightStop4"
          style="stop-color:#ffffff;stop-opacity:0.39215687"
@@ -75,38 +62,24 @@
        id="bubbleClip">
       <path
          id="bubbleClipPath"
-         d="M 7.5,5.5 H 16.5 A 5,5 0 0 1 21.5,10.5 V 14.5 A 5,5 0 0 1 16.5,19.5 H 7.56 C 6.99,19.5 6.45,19.41 5.95,19.24 C 5.12,19.95 3.91,20.1 2.92,19.52 C 2.85,19.48 2.79,19.43 2.72,19.39 C 3.23,19.05 3.7,18.63 4.09,18.13 C 3.11,17.21 2.5,15.9 2.5,14.5 V 10.5 A 5,5 0 0 1 7.5,5.5 Z"
+         d="M 5.5,3.5 H 10.5 A 4,4 0 0 1 14.5,7.5 V 9.5 A 4,4 0 0 1 10.5,13.5 H 4.88 C 4.5,13.5 4.13,13.44 3.8,13.33 C 3.25,13.8 2.44,13.9 1.78,13.51 C 1.73,13.49 1.69,13.46 1.65,13.43 C 1.99,13.2 2.3,12.92 2.56,12.59 C 1.91,11.97 1.5,11.1 1.5,9.5 V 7.5 A 4,4 0 0 1 5.5,3.5 Z"
          style="fill:#000000;fill-opacity:1;stroke:none" />
     </clipPath>
   </defs>
   <g
      id="layer-beckon-24">
-    <ellipse
-       cx="12"
-       cy="20"
-       rx="10"
-       ry="3"
-       id="shadow"
-       style="opacity:0.2;fill:url(#shadowRadial);fill-opacity:1;stroke:none" />
     <path
-       style="fill:url(#bodyGradient);fill-opacity:1;stroke:#452981;stroke-width:1;stroke-opacity:0.49803922"
-       d="M 7.5,5.5 H 16.5 A 5,5 0 0 1 21.5,10.5 V 14.5 A 5,5 0 0 1 16.5,19.5 H 7.56 C 6.99,19.5 6.45,19.41 5.95,19.24 C 5.12,19.95 3.91,20.1 2.92,19.52 C 2.85,19.48 2.79,19.43 2.72,19.39 C 3.23,19.05 3.7,18.63 4.09,18.13 C 3.11,17.21 2.5,15.9 2.5,14.5 V 10.5 A 5,5 0 0 1 7.5,5.5 Z"
+       style="fill:url(#bodyGradient);fill-opacity:1;stroke:#452981;stroke-width:1;stroke-linejoin:round;stroke-opacity:0.49803922"
+       d="M 5.5,3.5 H 10.5 A 4,4 0 0 1 14.5,7.5 V 9.5 A 4,4 0 0 1 10.5,13.5 H 4.88 C 4.5,13.5 4.13,13.44 3.8,13.33 C 3.25,13.8 2.44,13.9 1.78,13.51 C 1.73,13.49 1.69,13.46 1.65,13.43 C 1.99,13.2 2.3,12.92 2.56,12.59 C 1.91,11.97 1.5,11.1 1.5,9.5 V 7.5 A 4,4 0 0 1 5.5,3.5 Z"
        id="bubble-body" />
     <path
        clip-path="url(#bubbleClip)"
-       style="fill:none;stroke:url(#innerHighlight);stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.49803922"
-       d="M 7.5,5.5 H 16.5 A 5,5 0 0 1 21.5,10.5 V 14.5 A 5,5 0 0 1 16.5,19.5 H 7.56 C 6.99,19.5 6.45,19.41 5.95,19.24 C 5.12,19.95 3.91,20.1 2.92,19.52 C 2.85,19.48 2.79,19.43 2.72,19.39 C 3.23,19.05 3.7,18.63 4.09,18.13 C 3.11,17.21 2.5,15.9 2.5,14.5 V 10.5 A 5,5 0 0 1 7.5,5.5 Z"
+       style="fill:none;stroke:url(#innerHighlight);stroke-width:2;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.49803922"
+       d="M 5.5,3.5 H 10.5 A 4,4 0 0 1 14.5,7.5 V 9.5 A 4,4 0 0 1 10.5,13.5 H 4.88 C 4.5,13.5 4.13,13.44 3.8,13.33 C 3.25,13.8 2.44,13.9 1.78,13.51 C 1.73,13.49 1.69,13.46 1.65,13.43 C 1.99,13.2 2.3,12.92 2.56,12.59 C 1.91,11.97 1.5,11.1 1.5,9.5 V 7.5 A 4,4 0 0 1 5.5,3.5 Z"
        id="bubble-highlight" />
-    <g
-       id="face">
-      <path
-         style="opacity:0.5;fill:#452981;fill-opacity:1;stroke:none"
-         d="m 9,8 c -0.552,0 -1,0.448 -1,1 0,0.552 0,1.448 0,2 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 0,-0.552 0,-1.448 0,-2 0,-0.552 -0.448,-1 -1,-1 z m 6,0 c -0.552,0 -1,0.448 -1,1 0,0.552 0,1.448 0,2 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 0,-0.552 0,-1.448 0,-2 0,-0.552 -0.448,-1 -1,-1 z m -6,6 c -0.552,0 -1,0.448 -1,1 0,0.552 0.448,1 1,1 l 6,0 c 0.552,0 1,-0.448 1,-1 0,-0.552 -0.448,-1 -1,-1 l -6,0 z"
-         id="face-shadow" />
-      <path
-         style="fill:#ffffff;fill-opacity:1;stroke:none"
-         d="m 9,9 c -0.552,0 -1,0.448 -1,1 0,0.552 0,1.448 0,2 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 0,-0.552 0,-1.448 0,-2 0,-0.552 -0.448,-1 -1,-1 z m 6,0 c -0.552,0 -1,0.448 -1,1 0,0.552 0,1.448 0,2 0,0.552 0.448,1 1,1 0.552,0 1,-0.448 1,-1 0,-0.552 0,-1.448 0,-2 0,-0.552 -0.448,-1 -1,-1 z m -6,6 c -0.552,0 -1,0.448 -1,1 0,0.552 0.448,1 1,1 l 6,0 c 0.552,0 1,-0.448 1,-1 0,-0.552 -0.448,-1 -1,-1 l -6,0 z"
-         id="face-white" />
-    </g>
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 5,5 0,3 2,0 0,-3 -2,0 z m 4,0 0,3 2,0 0,-3 -2,0 z m -4,5 0,1 6,0 0,-1 -6,0 z"
+       id="face-white" />
   </g>
 </svg>

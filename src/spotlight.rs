@@ -7,6 +7,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::Arc;
 
 use gtk4::gdk;
 use gtk4::gdk_pixbuf;
@@ -26,6 +27,7 @@ use crate::api::{self, ChatEvent};
 use crate::blur;
 use crate::config::Config;
 use crate::markdown;
+use crate::mcp::McpManager;
 use crate::settings_window;
 use crate::tools;
 use crate::transcript::Transcript;
@@ -107,7 +109,12 @@ fn pretty_args(item: &Value) -> String {
 /// Build, wire up and present the entry window. `screenshot` is an OpenAI
 /// `image_url` data URL attached to the first message. Returns the window so
 /// the caller can track and toggle it.
-pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Option<String>) -> Window {
+pub fn present(
+    app: &Application,
+    config: &Rc<RefCell<Config>>,
+    mcp: &Arc<McpManager>,
+    screenshot: Option<String>,
+) -> Window {
     let window = Window::builder()
         .application(app)
         .decorated(false)
@@ -248,9 +255,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
     {
         let app = app.clone();
         let config = config.clone();
+        let mcp = mcp.clone();
         let window = window.clone();
         settings_button.connect_clicked(move |_| {
-            settings_window::present(&app, &config);
+            settings_window::present(&app, &config, &mcp);
             window.close();
         });
     }
@@ -258,6 +266,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
     // Enter → append the message and stream the reply into the card.
     {
         let config = config.clone();
+        let mcp = mcp.clone();
         let chip = chip.clone();
         let revealer = revealer.clone();
         let messages = messages.clone();
@@ -380,7 +389,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, screenshot: Opti
             payload.extend(history.borrow().iter().cloned());
             // Hand the model only the tools the user enabled; an empty registry
             // makes the request omit `tools` and behave exactly as before.
-            let registry = tools::registry_for(&config.borrow().enabled_toolsets);
+            let registry = tools::registry_for(&config.borrow().enabled_toolsets, &mcp);
             let (sender, receiver) = async_channel::unbounded::<ChatEvent>();
             api::stream_chat(api_config, payload, registry, sender);
 

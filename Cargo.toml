@@ -24,3 +24,5 @@ wayland-backend = { version = "0.3", features = ["client_system"] }
 wayland-scanner = "0.31"
 # Bundled SQLite so reading Evolution/Camel's mail cache needs no system lib.
 rusqlite = { version = "0.40.1", features = ["bundled"] }
+rmcp = { version = "1.7.0", default-features = false, features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "sync", "macros", "time", "process"] }

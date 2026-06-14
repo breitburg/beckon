@@ -6,6 +6,7 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use gtk4::gdk::Display;
 use gtk4::gio;
@@ -15,6 +16,7 @@ use gtk4::{Application, CssProvider, Settings};
 
 use crate::config::Config;
 use crate::keybinding;
+use crate::mcp::McpManager;
 use crate::screenshot;
 use crate::settings_window;
 use crate::spotlight;
@@ -31,15 +33,24 @@ pub fn build() -> Application {
     // Shared, mutable config for the lifetime of the process.
     let config = Rc::new(RefCell::new(Config::load()));
 
+    // Owns the MCP connections (and their tokio runtime) for the whole process.
+    let mcp = McpManager::new();
+
     app.connect_startup(glib::clone!(
         #[strong]
         config,
+        #[strong]
+        mcp,
         move |app| {
             load_css();
             follow_color_scheme();
 
             // Stay resident so the hotkey can reach us with no window open.
             std::mem::forget(app.hold());
+
+            // Connect the configured MCP servers in the background so their tools
+            // are ready by the time the user sends a message.
+            mcp.reload(&config.borrow().mcp_servers);
 
             // Make sure the system-wide shortcuts reflect the saved state.
             keybinding::apply(&config.borrow());
@@ -57,6 +68,8 @@ pub fn build() -> Application {
     app.connect_command_line(glib::clone!(
         #[strong]
         config,
+        #[strong]
+        mcp,
         move |app, cmdline| {
             let has_flag = |flag: &str| {
                 cmdline
@@ -66,12 +79,12 @@ pub fn build() -> Application {
             };
 
             if has_flag("--spotlight") {
-                toggle_spotlight(app, &config, has_flag("--screenshot"));
+                toggle_spotlight(app, &config, &mcp, has_flag("--screenshot"));
             } else if cmdline.is_remote() {
                 // The user launched the app again while it was already running
                 // (e.g. clicked the icon) — open settings. The initial
                 // background launch shows nothing.
-                settings_window::present(app, &config);
+                settings_window::present(app, &config, &mcp);
             }
             0
         }
@@ -86,7 +99,12 @@ thread_local! {
 }
 
 /// Show the entry, or dismiss it if it is already open (toggle).
-fn toggle_spotlight(app: &Application, config: &Rc<RefCell<Config>>, with_screenshot: bool) {
+fn toggle_spotlight(
+    app: &Application,
+    config: &Rc<RefCell<Config>>,
+    mcp: &Arc<McpManager>,
+    with_screenshot: bool,
+) {
     if !config.borrow().enabled {
         return;
     }
@@ -119,9 +137,10 @@ fn toggle_spotlight(app: &Application, config: &Rc<RefCell<Config>>, with_screen
     // provided that delay implicitly.
     let app = app.clone();
     let config = config.clone();
+    let mcp = mcp.clone();
     glib::timeout_add_local_once(std::time::Duration::from_millis(250), move || {
         PRESENT_PENDING.with(|p| p.set(false));
-        spotlight::present(&app, &config, shot);
+        spotlight::present(&app, &config, &mcp, shot);
     });
 }
 

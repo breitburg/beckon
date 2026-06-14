@@ -373,7 +373,8 @@ mod tests {
             api_key: String::new(),
             model: "test".to_string(),
         };
-        let tools = crate::tools::registry_for(&["bash".to_string()]);
+        let mcp = crate::mcp::McpManager::new();
+        let tools = crate::tools::registry_for(&["bash".to_string()], &mcp);
         let (sender, receiver) = async_channel::unbounded();
         let terminal = run(&api, Vec::new(), &tools, &sender);
         drop(sender);

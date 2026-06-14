@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::mcp::McpServerConfig;
 use crate::APP_ID;
 
 fn default_true() -> bool {
@@ -67,6 +68,10 @@ pub struct Config {
     /// available names. Accepts the legacy `enabled_tools` key for back-compat.
     #[serde(default, alias = "enabled_tools")]
     pub enabled_toolsets: Vec<String>,
+    /// External MCP servers whose tools are forwarded to the model. Persisted
+    /// as `[[mcp_servers]]` tables; see [`McpServerConfig`].
+    #[serde(default)]
+    pub mcp_servers: Vec<McpServerConfig>,
 }
 
 impl Default for Config {
@@ -81,6 +86,7 @@ impl Default for Config {
             model: default_model(),
             system_prompt: default_system_prompt(),
             enabled_toolsets: Vec::new(),
+            mcp_servers: Vec::new(),
         }
     }
 }

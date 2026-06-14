@@ -9,7 +9,9 @@
 
 use std::cell::Cell;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use gtk4::gdk;
 use gtk4::gio;
@@ -18,13 +20,14 @@ use gtk4::prelude::*;
 use gtk4::{
     Align, Application, ApplicationWindow, Box as GtkBox, Button, CheckButton, DropDown, Entry,
     EventControllerKey, Frame, Grid, HeaderBar, Image, Label, MenuButton, Orientation,
-    PasswordEntry, StringList, StringObject, Switch, Widget,
+    PasswordEntry, ScrolledWindow, StringList, StringObject, Switch, TextView, Widget, Window,
 };
 
 use crate::api;
 use crate::autostart;
 use crate::config::Config;
 use crate::keybinding;
+use crate::mcp::{McpManager, McpServerConfig, McpStatus, McpTransport, ServerState};
 use crate::tools;
 
 /// Which shortcut a capture button is currently recording for.
@@ -35,7 +38,7 @@ enum ShortcutTarget {
 }
 
 /// Show the settings window, creating it if it does not exist yet.
-pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
+pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpManager>) {
     // Reuse an existing settings window if one is already open.
     if let Some(window) = app
         .windows()
@@ -392,13 +395,107 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     tools_frame.set_child(Some(&tools_box));
     add_top_row(&grid, 6, "Toolsets", &tools_frame);
 
+    // --- MCP servers -------------------------------------------------------
+    // A framed list of configured MCP servers — one row each with an enable
+    // toggle, live connection status, and edit/remove — plus an "Add" button.
+    // The rows are rebuilt from config + the manager's snapshot whenever the
+    // set changes or a connection's status moves.
+    let servers_box = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(6)
+        .margin_top(8)
+        .margin_bottom(8)
+        .margin_start(8)
+        .margin_end(8)
+        .build();
+    let server_list = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(6)
+        .build();
+    servers_box.append(&server_list);
+
+    let add_button = Button::builder()
+        .label("Add server…")
+        .halign(Align::Start)
+        .build();
+    add_button.add_css_class("flat");
+    servers_box.append(&add_button);
+
+    // Late-bound so row/button handlers can trigger a rebuild of the list they
+    // live in (each rebuild recreates those handlers).
+    let rebuild: Rc<RefCell<Option<Rc<dyn Fn()>>>> = Rc::new(RefCell::new(None));
+    let builder: Rc<dyn Fn()> = {
+        let server_list = server_list.clone();
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let window = window.clone();
+        let rebuild = rebuild.clone();
+        Rc::new(move || {
+            while let Some(child) = server_list.first_child() {
+                server_list.remove(&child);
+            }
+            let snapshot = mcp.snapshot();
+            let servers = config.borrow().mcp_servers.clone();
+            if servers.is_empty() {
+                let empty = Label::builder()
+                    .label("No servers configured.")
+                    .halign(Align::Start)
+                    .build();
+                empty.add_css_class("dim-label");
+                server_list.append(&empty);
+            }
+            for (index, server) in servers.into_iter().enumerate() {
+                server_list.append(&server_row(
+                    &server, index, &snapshot, &config, &mcp, &window, &rebuild,
+                ));
+            }
+        })
+    };
+    *rebuild.borrow_mut() = Some(builder.clone());
+    builder();
+
+    {
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let window = window.clone();
+        let rebuild = rebuild.clone();
+        add_button.connect_clicked(move |_| {
+            open_server_dialog(&window, &config, &mcp, None, &rebuild);
+        });
+    }
+
+    // While a connection is settling, refresh the rows so the status moves from
+    // "Connecting…" to the tool count (or an error) without manual interaction.
+    {
+        let mcp = mcp.clone();
+        let window_weak = window.downgrade();
+        let builder = builder.clone();
+        glib::timeout_add_local(std::time::Duration::from_millis(800), move || {
+            let Some(_window) = window_weak.upgrade() else {
+                return glib::ControlFlow::Break;
+            };
+            if mcp
+                .snapshot()
+                .iter()
+                .any(|s| matches!(s.status, McpStatus::Connecting))
+            {
+                builder();
+            }
+            glib::ControlFlow::Continue
+        });
+    }
+
+    let servers_frame = Frame::new(None);
+    servers_frame.set_child(Some(&servers_box));
+    add_top_row(&grid, 7, "MCP servers", &servers_frame);
+
     // --- Start on login ----------------------------------------------------
     let login_switch = Switch::builder()
         .active(config.borrow().start_on_login)
         .halign(Align::Start)
         .valign(Align::Center)
         .build();
-    add_row(&grid, 7, "Start on login", &login_switch);
+    add_row(&grid, 8, "Start on login", &login_switch);
 
     {
         let config = config.clone();
@@ -429,6 +526,360 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>) {
     content.append(&grid);
     window.set_child(Some(&content));
     window.present();
+}
+
+/// Re-run the late-bound list builder, if one is set. Used by the server-row
+/// handlers (and the status poll) to redraw the list after a change.
+fn rebuild(rebuild: &Rc<RefCell<Option<Rc<dyn Fn()>>>>) {
+    let builder = rebuild.borrow().clone();
+    if let Some(builder) = builder {
+        builder();
+    }
+}
+
+/// Build one server row: enable toggle, name, connection status, edit + remove.
+fn server_row(
+    server: &McpServerConfig,
+    index: usize,
+    snapshot: &[ServerState],
+    config: &Rc<RefCell<Config>>,
+    mcp: &Arc<McpManager>,
+    window: &ApplicationWindow,
+    rebuilder: &Rc<RefCell<Option<Rc<dyn Fn()>>>>,
+) -> GtkBox {
+    let row = GtkBox::builder()
+        .orientation(Orientation::Horizontal)
+        .spacing(8)
+        .build();
+
+    let enable = CheckButton::builder()
+        .active(server.enabled)
+        .valign(Align::Center)
+        .build();
+    {
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let rebuilder = rebuilder.clone();
+        enable.connect_toggled(move |check| {
+            {
+                let mut config = config.borrow_mut();
+                if let Some(server) = config.mcp_servers.get_mut(index) {
+                    server.enabled = check.is_active();
+                }
+                config.save();
+                mcp.reload(&config.mcp_servers);
+            }
+            rebuild(&rebuilder);
+        });
+    }
+    row.append(&enable);
+
+    let name = Label::builder()
+        .label(&server.name)
+        .halign(Align::Start)
+        .build();
+    row.append(&name);
+
+    let (status, tooltip) = status_text(server, snapshot);
+    let status_label = Label::builder()
+        .label(&status)
+        .halign(Align::Start)
+        .xalign(0.0)
+        .hexpand(true)
+        .ellipsize(gtk4::pango::EllipsizeMode::End)
+        .build();
+    status_label.add_css_class("dim-label");
+    status_label.set_tooltip_text(tooltip.as_deref());
+    row.append(&status_label);
+
+    let edit = Button::from_icon_name("document-edit-symbolic");
+    edit.add_css_class("flat");
+    edit.set_tooltip_text(Some("Edit"));
+    {
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let window = window.clone();
+        let rebuilder = rebuilder.clone();
+        edit.connect_clicked(move |_| {
+            open_server_dialog(&window, &config, &mcp, Some(index), &rebuilder);
+        });
+    }
+    row.append(&edit);
+
+    let remove = Button::from_icon_name("user-trash-symbolic");
+    remove.add_css_class("flat");
+    remove.set_tooltip_text(Some("Remove"));
+    {
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let rebuilder = rebuilder.clone();
+        remove.connect_clicked(move |_| {
+            {
+                let mut config = config.borrow_mut();
+                if index < config.mcp_servers.len() {
+                    config.mcp_servers.remove(index);
+                }
+                config.save();
+                mcp.reload(&config.mcp_servers);
+            }
+            rebuild(&rebuilder);
+        });
+    }
+    row.append(&remove);
+
+    row
+}
+
+/// The status text (and optional tooltip with the full error) for a server row,
+/// derived from the manager's snapshot. Disabled servers show no live status.
+fn status_text(server: &McpServerConfig, snapshot: &[ServerState]) -> (String, Option<String>) {
+    if !server.enabled {
+        return ("Disabled".to_string(), None);
+    }
+    match snapshot.iter().find(|s| s.name == server.name) {
+        Some(state) => match &state.status {
+            McpStatus::Connecting => ("Connecting…".to_string(), None),
+            McpStatus::Ready => {
+                let count = state.tools.len();
+                let plural = if count == 1 { "" } else { "s" };
+                (format!("{count} tool{plural}"), None)
+            }
+            McpStatus::Error(message) => ("Error".to_string(), Some(message.clone())),
+        },
+        None => ("Connecting…".to_string(), None),
+    }
+}
+
+/// Open the modal add/edit dialog. `existing` is the index being edited, or
+/// `None` to add a new server. On save it writes the config, reconnects, and
+/// triggers a list rebuild.
+fn open_server_dialog(
+    parent: &ApplicationWindow,
+    config: &Rc<RefCell<Config>>,
+    mcp: &Arc<McpManager>,
+    existing: Option<usize>,
+    rebuilder: &Rc<RefCell<Option<Rc<dyn Fn()>>>>,
+) {
+    let current = existing.and_then(|i| config.borrow().mcp_servers.get(i).cloned());
+
+    let dialog = Window::builder()
+        .title(if existing.is_some() {
+            "Edit MCP Server"
+        } else {
+            "Add MCP Server"
+        })
+        .transient_for(parent)
+        .modal(true)
+        .resizable(false)
+        .default_width(360)
+        .build();
+
+    let content = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(12)
+        .margin_top(16)
+        .margin_bottom(16)
+        .margin_start(16)
+        .margin_end(16)
+        .build();
+
+    let name_entry = Entry::builder().placeholder_text("My server").build();
+    if let Some(server) = &current {
+        name_entry.set_text(&server.name);
+    }
+    content.append(&labeled("Name", &name_entry));
+
+    let transport_model = StringList::new(&["Local (stdio)", "Remote (HTTP)"]);
+    let transport_drop = DropDown::builder().model(&transport_model).build();
+    let is_http = matches!(
+        current.as_ref().map(|s| &s.transport),
+        Some(McpTransport::Http)
+    );
+    transport_drop.set_selected(if is_http { 1 } else { 0 });
+    content.append(&labeled("Transport", &transport_drop));
+
+    // stdio fields.
+    let stdio_box = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(12)
+        .build();
+    let command_entry = Entry::builder().placeholder_text("npx").build();
+    let args_entry = Entry::builder()
+        .placeholder_text("-y @modelcontextprotocol/server-everything")
+        .build();
+    let env_view = TextView::new();
+    env_view.set_monospace(true);
+    let env_scroll = ScrolledWindow::builder()
+        .min_content_height(70)
+        .has_frame(true)
+        .child(&env_view)
+        .build();
+    if let Some(server) = &current {
+        command_entry.set_text(&server.command);
+        args_entry.set_text(&server.args.join(" "));
+        env_view.buffer().set_text(&format_env(&server.env));
+    }
+    stdio_box.append(&labeled("Command", &command_entry));
+    stdio_box.append(&labeled("Arguments (space-separated)", &args_entry));
+    stdio_box.append(&labeled("Environment (KEY=VALUE per line)", &env_scroll));
+    content.append(&stdio_box);
+
+    // http fields.
+    let http_box = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(12)
+        .build();
+    let url_entry = Entry::builder()
+        .placeholder_text("https://example.com/mcp")
+        .build();
+    let token_entry = PasswordEntry::builder().show_peek_icon(true).build();
+    if let Some(server) = &current {
+        url_entry.set_text(&server.url);
+        token_entry.set_text(&server.auth_token);
+    }
+    http_box.append(&labeled("URL", &url_entry));
+    http_box.append(&labeled("Auth token (optional)", &token_entry));
+    content.append(&http_box);
+
+    update_transport_fields(&transport_drop, &stdio_box, &http_box);
+    {
+        let stdio_box = stdio_box.clone();
+        let http_box = http_box.clone();
+        transport_drop.connect_selected_notify(move |drop| {
+            update_transport_fields(drop, &stdio_box, &http_box);
+        });
+    }
+
+    let buttons = GtkBox::builder()
+        .orientation(Orientation::Horizontal)
+        .spacing(8)
+        .halign(Align::End)
+        .build();
+    let cancel = Button::with_label("Cancel");
+    let save = Button::with_label("Save");
+    save.add_css_class("suggested-action");
+    buttons.append(&cancel);
+    buttons.append(&save);
+    content.append(&buttons);
+
+    {
+        let dialog = dialog.clone();
+        cancel.connect_clicked(move |_| dialog.close());
+    }
+    {
+        let dialog = dialog.clone();
+        let config = config.clone();
+        let mcp = mcp.clone();
+        let rebuilder = rebuilder.clone();
+        save.connect_clicked(move |_| {
+            let name = name_entry.text().trim().to_string();
+            let http = transport_drop.selected() == 1;
+            let command = command_entry.text().trim().to_string();
+            let url = url_entry.text().trim().to_string();
+
+            // Validate; flag the offending field rather than silently doing
+            // nothing, then bail so the user can correct it.
+            let duplicate = config
+                .borrow()
+                .mcp_servers
+                .iter()
+                .enumerate()
+                .any(|(i, s)| s.name == name && Some(i) != existing);
+            let mut ok = true;
+            for (entry, bad) in [
+                (&name_entry, name.is_empty() || duplicate),
+                (&url_entry, http && url.is_empty()),
+                (&command_entry, !http && command.is_empty()),
+            ] {
+                if bad {
+                    entry.add_css_class("error");
+                    ok = false;
+                } else {
+                    entry.remove_css_class("error");
+                }
+            }
+            if !ok {
+                return;
+            }
+
+            let buffer = env_view.buffer();
+            let env_text = buffer
+                .text(&buffer.start_iter(), &buffer.end_iter(), false)
+                .to_string();
+            let server = McpServerConfig {
+                name,
+                enabled: current.as_ref().map(|s| s.enabled).unwrap_or(true),
+                transport: if http {
+                    McpTransport::Http
+                } else {
+                    McpTransport::Stdio
+                },
+                command,
+                args: args_entry
+                    .text()
+                    .split_whitespace()
+                    .map(str::to_string)
+                    .collect(),
+                env: parse_env(&env_text),
+                url,
+                auth_token: token_entry.text().to_string(),
+            };
+
+            {
+                let mut config = config.borrow_mut();
+                match existing {
+                    Some(i) if i < config.mcp_servers.len() => config.mcp_servers[i] = server,
+                    _ => config.mcp_servers.push(server),
+                }
+                config.save();
+                mcp.reload(&config.mcp_servers);
+            }
+            rebuild(&rebuilder);
+            dialog.close();
+        });
+    }
+
+    dialog.set_child(Some(&content));
+    dialog.present();
+}
+
+/// Show only the fields relevant to the selected transport.
+fn update_transport_fields(drop: &DropDown, stdio_box: &GtkBox, http_box: &GtkBox) {
+    let http = drop.selected() == 1;
+    stdio_box.set_visible(!http);
+    http_box.set_visible(http);
+}
+
+/// A control with a small dim caption above it, as one dialog field.
+fn labeled(caption: &str, control: &impl IsA<Widget>) -> GtkBox {
+    let field = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(4)
+        .build();
+    let label = Label::builder().label(caption).halign(Align::Start).build();
+    label.add_css_class("dim-label");
+    field.append(&label);
+    field.append(control);
+    field
+}
+
+/// Render env vars as `KEY=VALUE` lines for the dialog's text area.
+fn format_env(env: &BTreeMap<String, String>) -> String {
+    env.iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Parse `KEY=VALUE` lines back into an env map, skipping blank/invalid lines.
+fn parse_env(text: &str) -> BTreeMap<String, String> {
+    text.lines()
+        .filter_map(|line| {
+            let (key, value) = line.trim().split_once('=')?;
+            let key = key.trim();
+            (!key.is_empty()).then(|| (key.to_string(), value.trim().to_string()))
+        })
+        .collect()
 }
 
 /// Wire a shortcut button to arm capture for `target`, restoring the other

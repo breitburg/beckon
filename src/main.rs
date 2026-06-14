@@ -11,6 +11,7 @@ mod datetime;
 mod keybinding;
 mod mail;
 mod markdown;
+mod mcp;
 mod screenshot;
 mod settings_window;
 mod spotlight;

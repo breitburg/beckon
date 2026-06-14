@@ -11,11 +11,13 @@
 //! than the loop aborting).
 
 use std::process::Command;
+use std::sync::Arc;
 
 use serde_json::{json, Value};
 
 use crate::calendar;
 use crate::mail;
+use crate::mcp::{McpManager, McpStatus};
 
 /// A blocking tool executor. Receives the model's `arguments` already parsed
 /// into a `Value` object; returns the output string sent back to the model, or
@@ -115,7 +117,7 @@ pub fn catalog() -> &'static [ToolsetInfo] {
     &[
         ToolsetInfo {
             name: "bash",
-            label: "Shell (bash)",
+            label: "Shell",
             description: "Lets the assistant run shell commands on your machine. Powerful — only enable if you trust the model and endpoint.",
             icon: "utilities-terminal-symbolic",
         },
@@ -134,17 +136,54 @@ pub fn catalog() -> &'static [ToolsetInfo] {
     ]
 }
 
-/// Build a registry holding the tools of every toolset whose name appears in
-/// `enabled`. Unknown names (e.g. a toolset removed in a later version) are
-/// ignored.
-pub fn registry_for(enabled: &[String]) -> ToolRegistry {
+/// Build a registry holding the tools of every enabled built-in toolset plus
+/// the tools of every connected MCP server. Unknown toolset names (e.g. one
+/// removed in a later version) are ignored.
+pub fn registry_for(enabled: &[String], mcp: &Arc<McpManager>) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     for name in enabled {
         for tool in build_toolset(name) {
             registry.register(tool);
         }
     }
+    register_mcp_tools(&mut registry, mcp);
     registry
+}
+
+/// Fold the tools of every `Ready` MCP server into `registry`. Each MCP tool is
+/// exposed under its own name; should two servers (or a built-in) collide on a
+/// name, the later one is exposed as `{tool}__{server}` so dispatch stays
+/// unambiguous. The executor always routes to the original `(server, tool)`
+/// regardless of the exposed name.
+fn register_mcp_tools(registry: &mut ToolRegistry, mcp: &Arc<McpManager>) {
+    for server in mcp.snapshot() {
+        if !matches!(server.status, McpStatus::Ready) {
+            continue;
+        }
+        for tool in server.tools {
+            let mut exposed = tool.name.clone();
+            if registry.tools.iter().any(|t| t.name == exposed) {
+                exposed = format!("{}__{}", tool.name, sanitize(&tool.server));
+            }
+            let mcp = mcp.clone();
+            let server_name = tool.server.clone();
+            let tool_name = tool.name.clone();
+            registry.register(Tool::new(
+                &exposed,
+                &tool.description,
+                tool.input_schema.clone(),
+                move |args| mcp.call(&server_name, &tool_name, args),
+            ));
+        }
+    }
+}
+
+/// Reduce a server name to characters safe inside a tool identifier, so a
+/// collision-disambiguating suffix stays a valid function name for the model.
+fn sanitize(name: &str) -> String {
+    name.chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect()
 }
 
 /// Construct the tools belonging to the named toolset. Adding a toolset means

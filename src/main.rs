@@ -8,6 +8,7 @@ mod blur;
 mod calendar;
 mod config;
 mod datetime;
+mod eds;
 mod keybinding;
 mod mail;
 mod markdown;
@@ -15,6 +16,7 @@ mod mcp;
 mod screenshot;
 mod settings_window;
 mod spotlight;
+mod tasks;
 mod tools;
 mod transcript;
 

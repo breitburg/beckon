@@ -18,6 +18,7 @@ use serde_json::{json, Value};
 use crate::calendar;
 use crate::mail;
 use crate::mcp::{McpManager, McpStatus};
+use crate::tasks;
 
 /// A blocking tool executor. Receives the model's `arguments` already parsed
 /// into a `Value` object; returns the output string sent back to the model, or
@@ -133,6 +134,12 @@ pub fn catalog() -> &'static [ToolsetInfo] {
             description: "Lets the assistant search your locally-synced mail (subject, sender, recipients, date) via the Evolution/elementary Mail cache. Read-only.",
             icon: "io.elementary.mail",
         },
+        ToolsetInfo {
+            name: "tasks",
+            label: "Tasks",
+            description: "Lets the assistant read your to-do tasks and create, modify, complete, and delete them via Evolution Data Server. It can change your real task lists.",
+            icon: "io.elementary.tasks",
+        },
     ]
 }
 
@@ -194,6 +201,7 @@ fn build_toolset(name: &str) -> Vec<Tool> {
         "bash" => vec![bash_tool()],
         "calendar" => calendar::tools(),
         "mail" => mail::tools(),
+        "tasks" => tasks::tools(),
         _ => Vec::new(),
     }
 }

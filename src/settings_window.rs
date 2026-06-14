@@ -19,8 +19,9 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{
     Align, Application, ApplicationWindow, Box as GtkBox, Button, CheckButton, DropDown, Entry,
-    EventControllerKey, Frame, Grid, HeaderBar, Image, Label, MenuButton, Orientation,
-    PasswordEntry, ScrolledWindow, StringList, StringObject, Switch, TextView, Widget, Window,
+    EventControllerKey, Frame, Grid, HeaderBar, Image, Label, ListBox, ListBoxRow, MenuButton,
+    Orientation, PasswordEntry, ScrolledWindow, SelectionMode, Stack, StringList, StringObject,
+    Switch, TextView, Widget, Window,
 };
 
 use crate::api;
@@ -52,16 +53,14 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Beckon")
-        .resizable(false)
-        .default_width(380)
+        .default_width(640)
+        .default_height(560)
         .build();
     window.set_widget_name("settings");
 
-    // Flat, backgroundless header that blends into the window: window controls
-    // and the menu only, no title text.
+    // Native elementary header (the brushed gradient titlebar) carrying the
+    // title and the menu.
     let header = HeaderBar::new();
-    header.add_css_class("flat");
-    header.set_title_widget(Some(&Label::new(None)));
     let menu_model = gio::Menu::new();
     menu_model.append(Some("Quit Beckon"), Some("app.quit"));
     let menu_button = MenuButton::builder()
@@ -75,36 +74,13 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .orientation(Orientation::Vertical)
         .build();
 
-    // --- Heading: bold title + a purple enable toggle ----------------------
-    let heading = GtkBox::builder()
-        .orientation(Orientation::Vertical)
-        .spacing(16)
-        .build();
-    // Full-width so the gradient spans the window; vertical padding lives in CSS
-    // so the gradient fills the whole section.
-    heading.add_css_class("app-heading");
-
-    let title = Label::new(Some("Beckon"));
-    title.add_css_class("app-title");
-    title.set_halign(Align::Center);
-    heading.append(&title);
-
-    let enable_switch = Switch::builder()
-        .active(config.borrow().enabled)
-        .halign(Align::Center)
-        .build();
-    enable_switch.add_css_class("brand");
-    heading.append(&enable_switch);
-    content.append(&heading);
-
-    let grid = Grid::builder()
-        .row_spacing(12)
-        .column_spacing(12)
-        .margin_top(18)
-        .margin_bottom(18)
-        .margin_start(18)
-        .margin_end(18)
-        .build();
+    // Each settings tab is its own grid; a StackSidebar below switches between
+    // them. `page()` builds one with the shared spacing/margins. "Behavior" is
+    // the assistant itself (model, prompt, endpoint), "General" is the system
+    // integration (shortcuts, autostart), "Connectors" is tools + MCP servers.
+    let general = page();
+    let behavior = page();
+    let connectors = page();
 
     // --- API endpoint, key and model ----------------------------------------
     let url_entry = Entry::builder()
@@ -112,14 +88,14 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .placeholder_text("https://api.openai.com/v1")
         .hexpand(true)
         .build();
-    add_row(&grid, 0, "API URL", &url_entry);
+    add_row(&behavior, 0, "API URL", &url_entry);
 
     let key_entry = PasswordEntry::builder()
         .show_peek_icon(true)
         .hexpand(true)
         .build();
     key_entry.set_text(&config.borrow().api_key);
-    add_row(&grid, 1, "API Key", &key_entry);
+    add_row(&behavior, 1, "API Key", &key_entry);
 
     // The model picker lists whatever the endpoint's /models reports. Until a
     // fetch succeeds (or when it fails) it holds just the configured model.
@@ -139,7 +115,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         gtk4::Expression::NONE,
         "string",
     )));
-    add_row(&grid, 2, "Model", &model_dropdown);
+    add_row(&behavior, 2, "Model", &model_dropdown);
 
     // Repopulating the list fires selection notifications; ignore them.
     let repopulating = Rc::new(Cell::new(false));
@@ -270,7 +246,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .child(&system_view)
         .build();
     system_scroll.add_css_class("system-prompt");
-    add_top_row(&grid, 3, "System prompt", &system_scroll);
+    add_top_row(&behavior, 3, "System prompt", &system_scroll);
 
     {
         let config = config.clone();
@@ -283,11 +259,20 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         });
     }
 
+    // --- Master enable toggle -----------------------------------------------
+    let enable_switch = Switch::builder()
+        .active(config.borrow().enabled)
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .build();
+    enable_switch.add_css_class("brand");
+    add_row(&general, 0, "Enabled", &enable_switch);
+
     // --- Shortcuts -----------------------------------------------------------
     let shortcut_button = Button::with_label(&accel_to_label(&config.borrow().shortcut));
     shortcut_button.set_hexpand(true);
     shortcut_button.set_tooltip_text(Some("Click, then press the new combination"));
-    add_row(&grid, 4, "Shortcut", &shortcut_button);
+    add_row(&general, 1, "Shortcut", &shortcut_button);
 
     let screenshot_button =
         Button::with_label(&accel_to_label(&config.borrow().screenshot_shortcut));
@@ -295,7 +280,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
     screenshot_button.set_tooltip_text(Some(
         "Opens the prompt with a screenshot of your screen attached",
     ));
-    add_row(&grid, 5, "Screenshot shortcut", &screenshot_button);
+    add_row(&general, 2, "Screenshot shortcut", &screenshot_button);
 
     // One shared capture state: only one button records at a time, and the
     // single window-level key controller writes to whichever field is armed.
@@ -393,7 +378,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
     }
     let tools_frame = Frame::new(None);
     tools_frame.set_child(Some(&tools_box));
-    add_top_row(&grid, 6, "Toolsets", &tools_frame);
+    add_top_row(&connectors, 0, "Toolsets", &tools_frame);
 
     // --- MCP servers -------------------------------------------------------
     // A framed list of configured MCP servers — one row each with an enable
@@ -414,12 +399,12 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .build();
     servers_box.append(&server_list);
 
+    // Sits below the framed list, not inside it.
     let add_button = Button::builder()
         .label("Add server…")
         .halign(Align::Start)
         .build();
     add_button.add_css_class("flat");
-    servers_box.append(&add_button);
 
     // Late-bound so row/button handlers can trigger a rebuild of the list they
     // live in (each rebuild recreates those handlers).
@@ -487,7 +472,15 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
 
     let servers_frame = Frame::new(None);
     servers_frame.set_child(Some(&servers_box));
-    add_top_row(&grid, 7, "MCP servers", &servers_frame);
+
+    // The framed list with the "Add server…" button stacked underneath it.
+    let servers_section = GtkBox::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(6)
+        .build();
+    servers_section.append(&servers_frame);
+    servers_section.append(&add_button);
+    add_top_row(&connectors, 1, "MCP servers", &servers_section);
 
     // --- Start on login ----------------------------------------------------
     let login_switch = Switch::builder()
@@ -495,7 +488,7 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .halign(Align::Start)
         .valign(Align::Center)
         .build();
-    add_row(&grid, 8, "Start on login", &login_switch);
+    add_row(&general, 3, "Start on login", &login_switch);
 
     {
         let config = config.clone();
@@ -508,24 +501,114 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         });
     }
 
-    // The form follows the enable state.
-    grid.set_sensitive(config.borrow().enabled);
+    // --- Tabbed layout: an icon sidebar on the left switching the stack -----
+    let stack = Stack::builder().vexpand(true).hexpand(true).build();
+    stack.add_named(&scroll_page(&general), Some("general"));
+    stack.add_named(&scroll_page(&behavior), Some("behavior"));
+    stack.add_named(&scroll_page(&connectors), Some("connectors"));
+
+    // Custom nav (GtkStackSidebar can't show icons): one row per page, each a
+    // monochrome symbolic icon beside its title. The row's widget-name is the
+    // stack child it selects.
+    let sidebar = ListBox::new();
+    sidebar.add_css_class("navigation-sidebar");
+    sidebar.set_selection_mode(SelectionMode::Browse);
+    sidebar.set_width_request(180);
+    for (name, title, icon) in [
+        ("general", "General", "applications-system-symbolic"),
+        ("behavior", "Behavior", "preferences-other-symbolic"),
+        ("connectors", "Connectors", "application-x-addon-symbolic"),
+    ] {
+        let row_box = GtkBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(10)
+            .margin_top(8)
+            .margin_bottom(8)
+            .margin_start(10)
+            .margin_end(10)
+            .build();
+        row_box.append(&Image::from_icon_name(icon));
+        row_box.append(&Label::new(Some(title)));
+        let row = ListBoxRow::new();
+        row.set_child(Some(&row_box));
+        row.set_widget_name(name);
+        sidebar.append(&row);
+    }
+    {
+        let stack = stack.clone();
+        sidebar.connect_row_selected(move |_, row| {
+            if let Some(row) = row {
+                stack.set_visible_child_name(&row.widget_name());
+            }
+        });
+    }
+    sidebar.select_row(sidebar.row_at_index(0).as_ref());
+
+    let split = GtkBox::builder()
+        .orientation(Orientation::Horizontal)
+        .vexpand(true)
+        .build();
+    split.append(&sidebar);
+    split.append(&gtk4::Separator::new(Orientation::Vertical));
+    split.append(&stack);
+
+    // The rest of the form follows the enable state, but the toggle itself
+    // (and the rest of the General page) stays live so it can be flipped back
+    // on. Gate the other two pages and General's own controls.
+    let set_form_enabled = {
+        let behavior = behavior.clone();
+        let connectors = connectors.clone();
+        let shortcut_button = shortcut_button.clone();
+        let screenshot_button = screenshot_button.clone();
+        let login_switch = login_switch.clone();
+        Rc::new(move |enabled: bool| {
+            behavior.set_sensitive(enabled);
+            connectors.set_sensitive(enabled);
+            shortcut_button.set_sensitive(enabled);
+            screenshot_button.set_sensitive(enabled);
+            login_switch.set_sensitive(enabled);
+        })
+    };
+    set_form_enabled(config.borrow().enabled);
     {
         let config = config.clone();
-        let grid = grid.clone();
+        let set_form_enabled = set_form_enabled.clone();
         enable_switch.connect_active_notify(move |switch| {
             let enabled = switch.is_active();
             let mut config = config.borrow_mut();
             config.enabled = enabled;
             config.save();
             keybinding::apply(&config);
-            grid.set_sensitive(enabled);
+            set_form_enabled(enabled);
         });
     }
 
-    content.append(&grid);
+    content.append(&split);
     window.set_child(Some(&content));
     window.present();
+}
+
+/// One settings tab: a grid with the shared form spacing and margins.
+fn page() -> Grid {
+    Grid::builder()
+        .row_spacing(12)
+        .column_spacing(12)
+        .margin_top(18)
+        .margin_bottom(18)
+        .margin_start(18)
+        .margin_end(18)
+        .build()
+}
+
+/// Wrap a page grid in a scroller so a tall page (e.g. many MCP servers)
+/// scrolls instead of forcing the window taller.
+fn scroll_page(grid: &Grid) -> ScrolledWindow {
+    ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .hexpand(true)
+        .vexpand(true)
+        .child(grid)
+        .build()
 }
 
 /// Re-run the late-bound list builder, if one is set. Used by the server-row

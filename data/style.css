@@ -175,31 +175,4 @@ window.spotlight .attachment-chip image {
     opacity: 0.7;
 }
 
-/* Settings: flat, backgroundless header that blends into the window. */
-headerbar.flat {
-    background: none;
-    box-shadow: none;
-    border: none;
-}
-
-/* Settings heading vertical padding. The glow itself is on the window so it
- * also covers the area behind the flat header bar. */
-.app-heading {
-    padding: 36px 0;
-}
-
-/* Soft purple glow at the top of the settings window, behind the header bar,
- * fading into the surface colour (works in light and dark). */
-window#settings {
-    background-image: linear-gradient(
-        to bottom,
-        alpha(#7239b3, 0.3),
-        alpha(@theme_bg_color, 0) 200px
-    );
-}
-
-.app-title {
-    font-weight: 700;
-    font-size: 1.5em;
-}
 

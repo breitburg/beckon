@@ -75,9 +75,10 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
         .build();
 
     // Each settings tab is its own grid; a StackSidebar below switches between
-    // them. `page()` builds one with the shared spacing/margins. "Behavior" is
-    // the assistant itself (model, prompt, endpoint), "General" is the system
-    // integration (shortcuts, autostart), "Connectors" is tools + MCP servers.
+    // them. `page()` builds one with the shared spacing/margins. The "Assistant"
+    // tab is the assistant itself (model, prompt, endpoint), "General" is the
+    // system integration (on/off, shortcuts, autostart), and "Capabilities" is
+    // the toolsets + MCP servers the agent can call.
     let general = page();
     let behavior = page();
     let connectors = page();
@@ -504,8 +505,8 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
     // --- Tabbed layout: an icon sidebar on the left switching the stack -----
     let stack = Stack::builder().vexpand(true).hexpand(true).build();
     stack.add_named(&scroll_page(&general), Some("general"));
-    stack.add_named(&scroll_page(&behavior), Some("behavior"));
-    stack.add_named(&scroll_page(&connectors), Some("connectors"));
+    stack.add_named(&scroll_page(&behavior), Some("assistant"));
+    stack.add_named(&scroll_page(&connectors), Some("capabilities"));
 
     // Custom nav (GtkStackSidebar can't show icons): one row per page, each a
     // monochrome symbolic icon beside its title. The row's widget-name is the
@@ -516,8 +517,8 @@ pub fn present(app: &Application, config: &Rc<RefCell<Config>>, mcp: &Arc<McpMan
     sidebar.set_width_request(180);
     for (name, title, icon) in [
         ("general", "General", "applications-system-symbolic"),
-        ("behavior", "Behavior", "preferences-other-symbolic"),
-        ("connectors", "Connectors", "application-x-addon-symbolic"),
+        ("assistant", "Assistant", "preferences-other-symbolic"),
+        ("capabilities", "Capabilities", "application-x-addon-symbolic"),
     ] {
         let row_box = GtkBox::builder()
             .orientation(Orientation::Horizontal)

@@ -5,11 +5,6 @@ edition = "2021"
 description = "Summon any AI chat service from a system-wide hotkey"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/breitburg/beckon"
-default-run = "beckon"
-
-[[bin]]
-name = "beckon"
-path = "src/main.rs"
 
 [dependencies]
 gtk4 = { version = "0.9", features = ["v4_10"] }

@@ -304,7 +304,7 @@ fn prop_string(ifaces: &Variant, key: &str) -> Option<String> {
 
 /// Value of `key=` from a `.source` INI string. Matches the bare key only, so
 /// localized variants like `DisplayName[de]=` are ignored.
-fn ini_value(ini: &str, key: &str) -> Option<String> {
+pub(crate) fn ini_value(ini: &str, key: &str) -> Option<String> {
     for line in ini.lines() {
         if let Some(rest) = line.strip_prefix(key) {
             if let Some(value) = rest.strip_prefix('=') {

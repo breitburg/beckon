@@ -63,7 +63,6 @@ impl Tool {
 
 /// The set of tools available to a conversation. Cheap to build; passed by
 /// value into the worker thread (it is `Send`).
-#[derive(Default)]
 pub struct ToolRegistry {
     tools: Vec<Tool>,
 }

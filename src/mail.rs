@@ -72,9 +72,7 @@ fn discover_accounts() -> Vec<Account> {
 fn account_name(uid: &str) -> Option<String> {
     let path = glib::user_config_dir().join(format!("evolution/sources/{uid}.source"));
     let content = std::fs::read_to_string(path).ok()?;
-    content
-        .lines()
-        .find_map(|line| line.strip_prefix("DisplayName=").map(str::to_string))
+    crate::eds::ini_value(&content, "DisplayName")
 }
 
 /// Open a Camel cache read-only and immutable (no locking; never perturbs EDS).

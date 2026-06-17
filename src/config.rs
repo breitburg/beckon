@@ -76,18 +76,8 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            shortcut: default_shortcut(),
-            screenshot_shortcut: default_screenshot_shortcut(),
-            start_on_login: true,
-            api_base_url: default_api_base_url(),
-            api_key: String::new(),
-            model: default_model(),
-            system_prompt: default_system_prompt(),
-            enabled_toolsets: Vec::new(),
-            mcp_servers: Vec::new(),
-        }
+        // Every field carries a serde default, so an empty document yields them.
+        toml::from_str("").expect("empty config uses serde defaults")
     }
 }
 
